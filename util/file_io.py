@@ -1,20 +1,11 @@
+import os
+
 '''
 Created on Sep 10, 2011
 
 @author: Bastiaan van den Berg
 '''
 
-'''
-class Fasta(object):
-
-    def __init__(self, fasta_f):
-
-    def __iter__(self):
-        pass
-
-    def next(self):
-        pass
-'''
 
 # This is a generator function
 def read_fasta(f, filter_ids=None):
@@ -33,19 +24,19 @@ def read_fasta(f, filter_ids=None):
 
     # iterate over each line in the fasta file
     for line in handle:
-        
+
         if(seq_id == "" and seq_str == ""):
             if(line[0] == ">"):
                 seq_id = line.split()[0][1:]
             elif(line[0] == '#'):
-                pass # comment
+                pass
             elif(line.strip()):
                 # non-empty line...
-                print( line.strip())
+                print(line.strip())
                 raise(Exception, "Error in fasta file")
         else:
             if(line == "" or line[0] == ">"):
-                if(filter_ids == None or seq_id in filter_ids):
+                if(filter_ids is None or seq_id in filter_ids):
                     yield (seq_id, seq_str)
                 seq_str = ""
                 if(line[0] == ">"):
@@ -57,12 +48,13 @@ def read_fasta(f, filter_ids=None):
 
     # return the last sequence (not if the file was empty)
     if not(seq_id == ""):
-        if(filter_ids == None or seq_id in filter_ids):
+        if(filter_ids is None or seq_id in filter_ids):
             yield (seq_id, seq_str)
 
     # close file if we opened it
     if not(type(f) == file):
         handle.close()
+
 
 def write_fasta(f, seqs):
 
@@ -83,11 +75,168 @@ def write_fasta(f, seqs):
     if not(type(f) == file):
         handle.close()
 
-def write_mutation(f, mutations):
-    write_tuple_list(f, mutations)
-    
+
 def read_mutation(f):
-    return read_tuple_list(f, (str, int, str, str))
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    types = (str, int, str, str, str, int)
+
+    tuples = []
+    for line in handle:
+        tokens = line.split()
+        row = []
+        for index, t in enumerate(types):
+            if(index == 4 and tokens[index] == 'None'):
+                row.append(None)
+            else:
+                row.append(t(tokens[index]))
+        tuples.append(tuple(row))
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+    return tuples
+
+
+def write_mutation(f, mutations):
+    assert(all([len(m) == 6 for m in mutations]))
+    write_tuple_list(f, mutations)
+
+
+def read_pdb_dir(pdb_fs, pdb_dir):
+    '''
+    Only .ent files are read...
+    Returns AtomGroup object (prody)
+    '''
+
+    # import prody for pdb read/write
+    import prody
+    prody.confProDy(verbosity='none')
+
+    struct_data = []
+
+    for pdb_f in pdb_fs:
+        pdb_f = os.path.join(pdb_dir, pdb_f)
+        struct_data.append((pdb_f, prody.parsePDB(pdb_f)))
+
+    return struct_data
+
+
+def write_pdb_dir(pdb_dir, struct_data):
+
+    # import prody for pdb read/write
+    import prody
+
+    # create output directory, if not yet present
+    if not(os.path.exists(pdb_dir)):
+        os.makedirs(pdb_dir)
+
+    # write protein chain pdb files to output directory
+    for (pdb_f, struct) in struct_data:
+        out_f = os.path.join(pdb_dir, pdb_f)
+        prody.writePDB(out_f, struct)
+
+
+def read_residue_rank_dir(rank_fs, rank_dir):
+    rank_data = []
+    for rank_f in rank_fs:
+        rank_f = os.path.join(rank_dir, rank_f)
+        rank_data.append((rank_f, read_residue_rank(rank_f)))
+    return rank_data
+
+
+def write_residue_rank_dir(rank_dir, rank_data):
+
+    if not(os.path.exists(rank_dir)):
+        os.mkdir(rank_dir)
+
+    for (rank_f, rank) in rank_data:
+        out_f = os.path.join(rank_dir, rank_f)
+        write_residue_rank(out_f, rank)
+
+
+def read_residue_rank(f):
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    # store results
+    result = []
+
+    # iterate over lines in file
+    for line in handle:
+
+        # ignore empty lines and comments
+        if(line.strip() and not line[0] == '%'):
+
+            # each other line should be composed of 7 items
+            tokens = line.split()
+
+            # read the 7 items
+            ali_pos = int(tokens[0])
+            seq_pos = int(tokens[1])
+            aa = tokens[2]
+            coverage = float(tokens[3])
+            var_count = int(tokens[4])
+            var_letters = tokens[5]
+            rvet_score = float(tokens[6])
+
+            # store ass tuple and add to result
+            result.append((ali_pos, seq_pos, aa, coverage, var_count,
+                    var_letters, rvet_score))
+
+    if not(type(f) == file):
+        handle.close()
+
+    return result
+
+
+def write_residue_rank(f, rank_data):
+    assert(all([len(r) == 7 for r in rank_data]))
+    write_tuple_list(f, rank_data)
+
+
+def read_classification_result(f, score=None):
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    score_names = handle.readline().split(',')
+
+    score_lists = []
+    for sn in score_names:
+        score_lists.append(eval(handle.readline()))
+
+    if(score):
+        if not(score in score_names):
+            raise ValueError('Requested score not available: %s' % (score))
+        else:
+            result = (score, score_lists[score_names.index(score)])
+    else:
+        result = (score_names, score_lists)
+
+    if not(type(f) == file):
+        handle.close()
+
+    return result
+
+
+def write_classification_result(f, result):
+    # TODO
+    pass
+
 
 def read_labeling(f):
 
@@ -111,6 +260,7 @@ def read_labeling(f):
 
     return (label_dict, class_names)
 
+
 def write_labeling(f, object_ids, labels, class_names):
 
     # open file if path is provided instead of file
@@ -128,12 +278,13 @@ def write_labeling(f, object_ids, labels, class_names):
     if not(type(f) == file):
         handle.close()
 
+
 def read_propka30(filename):
 
-    # values to be read    
-    feph = [] # 15 times free energy per pH
-    chphf = [] # 15 charge per pH folded
-    chphu = [] # 15 charge per pH unfolded
+    # values to be read
+    feph = []           # 15 times free energy per pH
+    chphf = []          # 15 charge per pH folded
+    chphu = []          # 15 charge per pH unfolded
     femin = 100000.0
     feminph = -1.0
     pif = -1.0
@@ -154,7 +305,7 @@ def read_propka30(filename):
             if(first):
                 assert(tokens[0] == 'propka3.0,' and tokens[2] == '182')
                 first = False
-            if(tokens): 
+            if(tokens):
                 if(fe and fe_count < max_count):
                     feph.append(float(tokens[1]))
                     fe_count += 1
@@ -184,15 +335,16 @@ def read_propka30(filename):
     # bit tricky... return as dict???
     return((feph, chphf, chphu, femin, feminph, pif, piu))
 
+
 # This is a generator function
 def read_ids(f):
-    
+
     # open file if path is provided instead of file
     if(type(f) == file):
         handle = f
     else:
         handle = open(f, 'r')
-    
+
     for line in handle:
         tokens = line.split()
         yield(tokens[0])
@@ -201,20 +353,22 @@ def read_ids(f):
     if not(type(f) == file):
         handle.close()
 
+
 def write_ids(f, ids):
-    
+
     # open file if path is provided instead of file
     if(type(f) == file):
         handle = f
     else:
         handle = open(f, 'w')
-    
+
     for uid in ids:
         handle.write('%s\n' % (uid))
-    
+
     # close file if we opened it
     if not(type(f) == file):
         handle.close()
+
 
 def read_dict(handle, value_type, num_cols=1):
     result = {}
@@ -227,19 +381,21 @@ def read_dict(handle, value_type, num_cols=1):
             result[tokens[0]] = value_type(tokens[1])
     return result
 
+
 def write_dict(handle, d):
     for key in d.keys():
         handle.write('%s\t%s\n' % (key, str(d[key])))
 
+
 # use eval instead of passing list of types???
 def read_tuple_list(f, types):
-    
+
     # open file if path is provided instead of file
     if(type(f) == file):
         handle = f
     else:
         handle = open(f, 'r')
-    
+
     tuples = []
     for line in handle:
         tokens = line.split()
@@ -247,26 +403,27 @@ def read_tuple_list(f, types):
         for index in xrange(len(types)):
             row.append(types[index](tokens[index]))
         tuples.append(tuple(row))
-    
+
     # close file if we opened it
     if not(type(f) == file):
         handle.close()
-    
+
     return tuples
 
+
 def write_tuple_list(f, tuple_list):
-    
+
     # open file if path is provided instead of file
     if(type(f) == file):
         handle = f
     else:
         handle = open(f, 'w')
-    
+
     for tup in tuple_list:
         for item in tup:
             handle.write('%s\t' % (str(item)))
         handle.write('\n')
-    
+
     # close file if we opened it
     if not(type(f) == file):
         handle.close()
