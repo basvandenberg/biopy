@@ -41,7 +41,7 @@ aa_name = list(itertools.chain.from_iterable([aa_unambiguous_name,
 
 # 19 varimax Georgiev scales, each row is a scale, the order of the rows is
 # the same as the amino acids in aa_unambiguous_alph
-georgiev_scales = numpy.array([
+georgiev_scales_mat = numpy.array([
        [ 0.57, -2.8 , -2.02, -2.46,  2.66, -3.08, -2.54,  0.15, -0.39,
          3.1 ,  2.72, -3.89,  1.89,  3.12, -0.58, -1.1 , -0.65,  1.89,
          0.79,  2.64],
@@ -102,7 +102,7 @@ georgiev_scales = numpy.array([
 ])
 
 # 10 BLOSUM62-derived Georgiev scales
-georgiev_blosum_scales = numpy.array([
+georgiev_blosum_scales_mat = numpy.array([
        [ 0.077,  1.014,  1.511,  1.551, -1.084,  1.477,  1.094,  0.849,
          0.716, -1.462, -1.406,  1.135, -0.963, -1.619,  0.883,  0.844,
          0.188, -1.577, -1.142, -1.127],
@@ -136,11 +136,11 @@ georgiev_blosum_scales = numpy.array([
 ])
 
 def get_georgiev_scale(index, ambiguous=True):
-    scale = dict(zip(aa_unambiguous_alph, georgiev_scales[index]))
+    scale = dict(zip(aa_unambiguous_alph, georgiev_scales_mat[index]))
     return _get_scale(scale, ambiguous)
 
 def get_georgiev_blosum_scale(index, ambiguous=True):
-    scale = dict(zip(aa_unambiguous_alph, georgiev_blosum_scales[index]))
+    scale = dict(zip(aa_unambiguous_alph, georgiev_blosum_scales_mat[index]))
     return _get_scale(scale, ambiguous)
 
 def _get_scale(scale, ambiguous):
@@ -151,6 +151,8 @@ def _get_scale(scale, ambiguous):
 def _get_non_aa_letter_dict():
     other_letters = aa_ambiguous_alph + aa_special_alph + aa_ter_alph
     return dict(zip(other_letters, len(other_letters) * [0.0]))
+
+georgiev_scales = [get_georgiev_scale(i) for i in xrange(19)]
 
 # amino acid clusters
 # 4 (www.ebi.ac.uk/2can/biology/molecules_small_aatable.html)
@@ -371,10 +373,14 @@ def window_seq(seq, window_size, overlapping=False):
             step = 1
         return [seq[i:i + window_size] for i in range(start, stop, step)]
 
+filter_cache = {}
 def convolution_filter(window=9, edge=0.0):  # type not implemented yet
     '''
     Returns triangular convolution filter. The filter values add up to 1.0.
     '''
+
+    if((window, edge) in filter_cache.keys()):
+        return filter_cache[(window, edge)]
 
     if(window % 2 == 0):
         raise ValueError('Window must be an uneven number.')
@@ -384,16 +390,24 @@ def convolution_filter(window=9, edge=0.0):  # type not implemented yet
         raise ValueError('The edge parameter must be in the range 0.0 to 1.0.')
 
     if(edge == 1.0):
-        return numpy.ones(window) / window
+        result = numpy.ones(window) / window
+        filter_cache[(window, edge)] = result
+        return result
     else:
-        distance = window / 2
-        diff = 1.0 - edge
-        step = diff / distance
-        forw = numpy.arange(edge, 1.0, step)
-        backw = forw[::-1]
-        forw = numpy.append(forw, 1.0)
-        filt = numpy.append(forw, backw)
-        return filt / filt.sum()
+        result = numpy.ones(window)
+        num = window / 2
+        #diff = 1.0 - edge
+        #step = diff / distance
+        #forw = numpy.arange(edge, 1.0, step)
+        #backw = forw[::-1]
+        forw = numpy.linspace(edge, 1.0, num, endpoint=False)
+        result[:num] = forw
+        result[-num:] = forw[::-1]
+        #forw = numpy.append(forw, 1.0)
+        #filt = numpy.append(forw, backw)
+        result = result / result.sum()
+        filter_cache[(window, edge)] = result
+        return result
 
 def seq_signal_raw(protein, scale):
     return [scale[letter] for letter in protein]
