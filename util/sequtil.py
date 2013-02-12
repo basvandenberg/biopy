@@ -153,6 +153,7 @@ def _get_non_aa_letter_dict():
     return dict(zip(other_letters, len(other_letters) * [0.0]))
 
 georgiev_scales = [get_georgiev_scale(i) for i in xrange(19)]
+georgiev_blosum_scales = [get_georgiev_blosum_scale(i) for i in xrange(10)]
 
 # amino acid clusters
 # 4 (www.ebi.ac.uk/2can/biology/molecules_small_aatable.html)
