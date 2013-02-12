@@ -122,8 +122,15 @@ def read_pdb_dir(pdb_fs, pdb_dir):
     struct_data = []
 
     for pdb_f in pdb_fs:
+
         pdb_f = os.path.join(pdb_dir, pdb_f)
-        struct_data.append((pdb_f, prody.parsePDB(pdb_f)))
+
+        if(os.path.exists(pdb_f)):
+            struct = prody.parsePDB(pdb_f)
+        else:
+            struct = None
+
+        struct_data.append((pdb_f, struct))
 
     return struct_data
 
@@ -139,15 +146,26 @@ def write_pdb_dir(pdb_dir, struct_data):
 
     # write protein chain pdb files to output directory
     for (pdb_f, struct) in struct_data:
-        out_f = os.path.join(pdb_dir, pdb_f)
-        prody.writePDB(out_f, struct)
+        if not(struct is None):
+            out_f = os.path.join(pdb_dir, pdb_f)
+            prody.writePDB(out_f, struct)
 
 
 def read_residue_rank_dir(rank_fs, rank_dir):
+
     rank_data = []
+
     for rank_f in rank_fs:
+
         rank_f = os.path.join(rank_dir, rank_f)
-        rank_data.append((rank_f, read_residue_rank(rank_f)))
+
+        if(os.path.exists(rank_f)):
+            rank = read_residue_rank(rank_f)
+        else:
+            rank = None
+
+        rank_data.append((rank_f, rank))
+
     return rank_data
 
 
@@ -157,8 +175,9 @@ def write_residue_rank_dir(rank_dir, rank_data):
         os.mkdir(rank_dir)
 
     for (rank_f, rank) in rank_data:
-        out_f = os.path.join(rank_dir, rank_f)
-        write_residue_rank(out_f, rank)
+        if not(rank is None):
+            out_f = os.path.join(rank_dir, rank_f)
+            write_residue_rank(out_f, rank)
 
 
 def read_residue_rank(f):
