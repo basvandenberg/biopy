@@ -172,7 +172,7 @@ def read_residue_rank_dir(rank_fs, rank_dir):
 def write_residue_rank_dir(rank_dir, rank_data):
 
     if not(os.path.exists(rank_dir)):
-        os.mkdir(rank_dir)
+        os.makedirs(rank_dir)
 
     for (rank_f, rank) in rank_data:
         if not(rank is None):
