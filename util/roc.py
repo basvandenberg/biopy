@@ -1,6 +1,6 @@
 import numpy
 from matplotlib import pyplot
-from sklearn.metrics import roc_curve, auc
+#from sklearn.metrics import roc_curve, auc
 
 '''
 Created on Fri Oct 1, 2010
@@ -8,11 +8,66 @@ Created on Fri Oct 1, 2010
 @author: Bastiaan van den Berg
 '''
 
+class RocCvCollection(object):
+
+    def __init__(self):
+        self.roc_list = []
+
+    def add(self, r):
+        self.roc_list.append(r)
+
+    def save_roc_plot(self, f, color='#3465a4', linestyle='-',
+                subcolor='#babdb6', sublinestyle='-'):
+        fig = self.get_roc_plot(color, linestyle, subcolor, sublinestyle)
+        fig.savefig(f)
+        pyplot.close(fig)
+
+    def get_roc_plot(self, color='#3465a4', linestyle='-', subcolor='#babdb6',
+                sublinestyle='-'):
+
+        # create figure axes
+        fig = pyplot.figure()
+        ax = fig.add_subplot(1, 1, 1)
+
+        # plot the random classification line
+        ax.plot([0, 1], [0, 1], color='#d3d7cf', linestyle='--')
+
+        # plot all rocs in the collection
+        for index, r in enumerate(self.roc_list):
+            r.add_to_roc_axes(ax, color=subcolor, linestyle=sublinestyle)
+
+        # plot the average roc
+        x, y = self.avg_roc()
+        avg, std = self.avg_auc()
+        ax.plot(x, y, color=color, label='avg-auc = %0.2f (std = %0.2f))' %
+                (avg, std))
+
+        # general plot settings
+        ax.grid()
+        ax.set_xlabel('false positive rate')
+        ax.set_ylabel('true positive rate')
+        ax.legend(loc="lower right", prop={'size':8})
+        return fig
+
+    def avg_roc(self):
+        # TODO implement this, now returning the first ROC as stub
+        return self.roc_list[0].roc
+
+    def avg_auc(self):
+        '''
+        Returns mean and std of the area under the curves of all ROC-curves in
+        the collection.
+
+        NOTE: the area under the average roc-curve might be slightly different.
+        '''
+        aucs = [r.auc() for r in self.roc_list]
+        return (numpy.mean(aucs), numpy.std(aucs))
+
 class ROC(object):
     '''
     '''
 
-    def __init__(self, predictions, class_labels):
+    def __init__(self, class_labels, predictions, class0=-1, class1=1):
         '''
         ROC-curve for 2-class classification
         The predictions and the class labels must be a list with numbers, 
@@ -25,19 +80,22 @@ class ROC(object):
                       otherwise.
         A value error will be raised when the lists have different sizes
         '''
-        self._check_args(predictions, class_labels)
+        self._check_args(class_labels, predictions, class0, class1)
         self.predictions = predictions
-        self.class_labels = class_labels  
+        self.class_labels = class_labels
+        self.class0 = class0
+        self.class1 = class1
         self.roc = self._roc()
 
-    def _check_args(self, predictions, class_labels):
+    def _check_args(self, class_labels, predictions, class0, class1):
         if not(len(predictions) == len(class_labels)):
             raise ValueError('Unequal number of predictions and class labels.')
-        val_set = set(class_labels)
-        if not(val_set == set([-1.0, 1.0])):
-            raise ValueError('Class labels may only be -1.0 and 1.0,' + 
-                             'and both values must be at least once present' + 
-                             'in the class labels list.')
+        # TODO check classes
+        #class_set = set(class_labels)
+        #if not(val_set == set(classes)):
+        #    raise ValueError('Class labels may only be -1.0 and 1.0,' + 
+        #                     'and both values must be at least once present' + 
+        #                     'in the class labels list.')
 
     def _roc(self):
         '''
@@ -54,9 +112,11 @@ class ROC(object):
         x = []
         y = []
 
+        class_counts = numpy.bincount(self.class_labels)
+
         # determine N and P (number of negative and positive class labels)
-        n = self.class_labels.count(-1.0)
-        p = self.class_labels.count(1.0)
+        n = class_counts[self.class0]
+        p = class_counts[self.class1]
 
         assert(n + p == len(self.class_labels))
 
@@ -67,7 +127,8 @@ class ROC(object):
         middle = []
         for i in range(len(pred_sorted) - 1):
             if not(pred_sorted[i] == pred_sorted[i + 1]):
-                midpoint = pred_sorted[i] + 0.5 * (pred_sorted[i + 1] - pred_sorted[i])
+                midpoint = pred_sorted[i] + 0.5 *\
+                        (pred_sorted[i + 1] - pred_sorted[i])
                 middle.append(midpoint)
         
         thresholds = []
@@ -83,12 +144,13 @@ class ROC(object):
             tp = 0
             for i in range(len(self.predictions)):
                 if(self.predictions[i] > threshold):
-                    if(self.class_labels[i] == -1.0):
+                    if(self.class_labels[i] == self.class0):
                         fp += 1
-                    elif(self.class_labels[i] == 1.0):
+                    elif(self.class_labels[i] == self.class1):
                         tp += 1
                     else:
-                        raise ValueError('Labels can only be -1.0 or 1.0.')
+                        raise ValueError('Labels can only be %i or %i.' %
+                                (self.class0, self.class1))
 
             # calculate false and true positive rate
             fpr = float(fp) / n
@@ -99,18 +161,34 @@ class ROC(object):
 
         return (x, y)
 
-    def plot_roc(self, f):
-        (x, y) = self.roc
-        fig = pyplot.figure()
-        pyplot.plot(x, y)
-        pyplot.grid(True)
+    def save_roc_plot(self, f, label='', color='#3465a4', linestyle='-'):
+        fig = self.get_roc_plot(f, label, color, linestyle)
         fig.savefig(f)
-        fig.clear()
+        pyplot.close(fig)
 
-    def auc_roc(self, limit=1.0):
+    def get_roc_plot(self, f, label='', color='#3465a4', linestyle='-'):
+        fig = pyplot.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        self.add_to_roc_axes(ax, label, color, linestyle)
+        ax.grid()
+        ax.set_xlabel('false positive rate')
+        ax.set_ylabel('true positive rate')
+        ax.legend(loc="lower right")
+        return fig
 
-        if(limit < 0.0 or limit > 1.0):
-            raise ValueError('Limit must be in range [0.0, 1.0].')
+    def add_to_roc_axes(self, ax, label='', color='#babdb6', linestyle='-'):
+        x, y = self.roc
+        if(len(label) > 0):
+            label = '%s (area = %0.2f)' % (label, self.auc())
+            ax.plot(x, y, color=color, label=label)
+        else:
+            ax.plot(x, y, color=color)
+
+    #def auc_roc(self, limit=1.0):
+    def auc(self):
+
+        #if(limit < 0.0 or limit > 1.0):
+        #    raise ValueError('Limit must be in range [0.0, 1.0].')
 
         (xvalues, yvalues) = self.roc
 
@@ -142,5 +220,4 @@ class ROC(object):
 
         return area
         '''
-        
         return numpy.trapz(yvalues, xvalues)
