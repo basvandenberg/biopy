@@ -247,7 +247,7 @@ class ROC(object):
     def add_to_roc_axes(self, ax, label='', color='#d3d7cf', linestyle='-'):
         x, y = self.roc
         if(len(label) > 0):
-            label = '%s (area = %0.2f)' % (label, self.auc())
+            label = '%s (auc = %0.3f)' % (label, self.auc())
             ax.plot(x, y, color=color, label=label)
         else:
             ax.plot(x, y, color=color)
