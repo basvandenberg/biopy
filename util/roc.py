@@ -44,7 +44,7 @@ class RocCollection(object):
         # plot the average roc
         x, y = self.avg_roc()
         avg, std = self.avg_auc()
-        ax.plot(x, y, color=color, label='avg-auc = %0.2f (std = %0.2f))' %
+        ax.plot(x, y, color=color, label='avg-auc = %0.3f (std = %0.3f))' %
                 (avg, std))
 
         # general plot settings
