@@ -21,9 +21,9 @@ class RocCollection(object):
     # TODO: add functions for multiple roc comparison plots
 
     def save_avg_roc_plot(self, f, color='#3465a4', linestyle='-',
-                subcolor='#d3d7cf', sublinestyle='-'):
+                subcolor='#d3d7cf', sublinestyle='-', transparent=False):
         fig = self.get_avg_roc_plot(color, linestyle, subcolor, sublinestyle)
-        fig.savefig(f)
+        fig.savefig(f, transparent=transparent)
         pyplot.close(fig)
 
     def get_avg_roc_plot(self, color='#3465a4', linestyle='-',
@@ -228,9 +228,10 @@ class ROC(object):
             if(x_before < x and x_after > x):
                 return (index)
 
-    def save_roc_plot(self, f, label='', color='#3465a4', linestyle='-'):
+    def save_roc_plot(self, f, label='', color='#3465a4', linestyle='-',
+            transparent=False):
         fig = self.get_roc_plot(f, label, color, linestyle)
-        fig.savefig(f)
+        fig.savefig(f, transparent=transparent)
         pyplot.close(fig)
 
     def get_roc_plot(self, f, label='', color='#3465a4', linestyle='-'):
