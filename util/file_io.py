@@ -204,7 +204,7 @@ def write_python_list(f, l):
         handle = f
     else:
         handle = open(f, 'w')
-    f.write('%s\n' % (str(l)))
+    handle.write('%s\n' % (str(l)))
     if not(type(f) == file):
         handle.close()
 
