@@ -184,7 +184,7 @@ def read_python_list(f):
         handle = open(f, 'r')
 
     # read list (not very neat, but whatever :)
-    result = eval(f.read())
+    result = eval(handle.read())
     assert(type(result) == list)
     assert(all([type(item) == float for item in result]))
 
