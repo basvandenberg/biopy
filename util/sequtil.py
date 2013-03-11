@@ -27,8 +27,8 @@ aa_special_short = ['sec', 'pyl']
 aa_special_name = ['selenocysteine', 'pyrralysine']
 
 aa_ter_alph = '*'
-aa_ter_short = 'ter'
-aa_ter_name = 'terminal'
+aa_ter_short = ['ter']
+aa_ter_name = ['terminal']
 
 aa_alph = aa_unambiguous_alph + aa_ambiguous_alph +\
           aa_special_alph + aa_ter_alph

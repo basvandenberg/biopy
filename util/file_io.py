@@ -151,6 +151,64 @@ def write_pdb_dir(pdb_dir, struct_data):
             prody.writePDB(out_f, struct)
 
 
+def read_rasa_dir(rasa_fs, rasa_dir):
+    rasa_data = []
+    for rasa_f in rasa_fs:
+        rasa_f = os.path.join(rasa_dir, rasa_f)
+        if(os.path.exists(rasa_f)):
+            rasa = read_python_list(rasa_f)
+        else:
+            rasa = None
+        rasa_data.append((rasa_f, rasa))
+    return rasa_data
+
+
+def write_rasa_dir(rasa_dir, rasa_data):
+    # create output directory, if not yet present
+    if not(os.path.exists(rasa_dir)):
+        os.makedirs(rasa_dir)
+
+    # write protein chain pdb files to output directory
+    for (rasa_f, rasa) in rasa_data:
+        if not(rasa is None):
+            out_f = os.path.join(rasa_dir, rasa_f)
+            write_python_list(out_f, rasa)
+
+
+def read_python_list(f):
+    
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    # read list (not very neat, but whatever :)
+    result = eval(f.read())
+    assert(type(result) == list)
+    assert(all([type(item) == float for item in result]))
+
+    if not(type(f) == file):
+        handle.close()
+
+    return result
+
+
+def write_python_list(f, l):
+    
+    assert(type(l) == list)
+    assert(all([type(item) == float for item in l]))
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'w')
+    f.write('%s\n' % (str(l)))
+    if not(type(f) == file):
+        handle.close()
+
+
 def read_residue_rank_dir(rank_fs, rank_dir):
 
     rank_data = []
