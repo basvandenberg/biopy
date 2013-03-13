@@ -56,6 +56,41 @@ def read_fasta(f, filter_ids=None):
         handle.close()
 
 
+def read_pfam(f):
+    
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+
+def write_pfam(f, pfam_data):
+    
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'w')
+
+    for uni, pfam in pfam_data:
+        handle.write('>%s\n' % (uni))
+        for (start_i, end_i, hmm_acc, hmm_name, type_, bit_score, e_value,
+                clan, active_res) in pfam:
+            handle.write('%i\t%i\t%s\t%s\t%s\t%.1f\t%e\t%s\t%s\n' % (start_i,
+                    end_i, hmm_acc, hmm_name, type_, bit_score, e_value,
+                    clan, active_res))
+        handle.write('\n')
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+
 def write_fasta(f, seqs):
 
     # open file if path is provided instead of file
