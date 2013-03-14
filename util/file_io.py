@@ -1,5 +1,8 @@
 import os
 
+### not sure if this is realy handy...
+from ssbc import protein
+
 '''
 Created on Sep 10, 2011
 
@@ -35,7 +38,7 @@ def read_fasta(f, filter_ids=None):
                 print(line.strip())
                 raise(Exception, "Error in fasta file")
         else:
-            if(line == "" or line[0] == ">"):
+            if(line.strip() == "" or line[0] == ">"):
                 if(filter_ids is None or seq_id in filter_ids):
                     yield (seq_id, seq_str)
                 seq_str = ""
@@ -56,41 +59,6 @@ def read_fasta(f, filter_ids=None):
         handle.close()
 
 
-def read_pfam(f):
-    
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
-
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
-
-def write_pfam(f, pfam_data):
-    
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'w')
-
-    for uni, pfam in pfam_data:
-        handle.write('>%s\n' % (uni))
-        for (start_i, end_i, hmm_acc, hmm_name, type_, bit_score, e_value,
-                clan, active_res) in pfam:
-            handle.write('%i\t%i\t%s\t%s\t%s\t%.1f\t%e\t%s\t%s\n' % (start_i,
-                    end_i, hmm_acc, hmm_name, type_, bit_score, e_value,
-                    clan, active_res))
-        handle.write('\n')
-
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
-
 def write_fasta(f, seqs):
 
     # open file if path is provided instead of file
@@ -103,6 +71,71 @@ def write_fasta(f, seqs):
         handle.write('>' + s[0] + '\n')
         for i in range(0, len(s[1]), 70):
             handle.write(s[1][i:i + 70] + '\n')
+        handle.write('\n')
+        handle.flush()
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+
+def read_pfam(f):
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    # initialize sequence id and list of annotations
+    current_id = ""
+    current_annotations = []
+
+    # iterate over lines
+    for line in handle:
+
+        if(current_id == "" and len(current_annotations) == 0):
+            if(line[0] == ">"):
+                current_id = line.split()[0][1:]
+            elif(line[0] == '#'):
+                pass
+            elif(line.strip()):
+                # non-empty line...
+                print(line.strip())
+                raise(Exception, "Error in pfam file")
+        else:
+            if(line.strip() == "" or line[0] == ">"):
+                yield (current_id, current_annotations)
+                current_annotations = []
+                if(line[0] == ">"):
+                    current_id = line.split()[0][1:]
+                else:
+                    current_id = ""
+            else:
+                annotation = protein.Pfam.parse(line.strip())
+                current_annotations.append(annotation)
+
+    # return annotations for the last item (not if the file was empty)
+    if not(current_id == ""):
+        yield (current_id, current_annotations)
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+
+def write_pfam(f, pfam_data):
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'w')
+
+    for uni, pfam in pfam_data:
+        handle.write('>%s\n' % (uni))
+        for annotation in pfam:
+            handle.write('%s\n' % (annotation.single_line_str()))
         handle.write('\n')
         handle.flush()
 
@@ -211,7 +244,7 @@ def write_rasa_dir(rasa_dir, rasa_data):
 
 
 def read_python_list(f):
-    
+
     # open file if path is provided instead of file
     if(type(f) == file):
         handle = f
@@ -230,7 +263,7 @@ def read_python_list(f):
 
 
 def write_python_list(f, l):
-    
+
     assert(type(l) == list)
     assert(all([type(item) == float for item in l]))
 
