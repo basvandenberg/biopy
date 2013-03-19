@@ -572,3 +572,41 @@ def write_tuple_list(f, tuple_list):
     # close file if we opened it
     if not(type(f) == file):
         handle.close()
+
+
+def parse_cross_validation_file(cv_file):
+    '''
+    Each line contains a list of test set indices, all other indices are
+    assumed to be train set.
+
+    returns list of tuples, each tuple containing a list of train indices
+    and a list of test indices, these can be used as cv parameter.
+    '''
+
+    # store test indices per CV-fold
+    tst_is = []
+
+    # featch the cv-fold test indices from file
+    with open(cv_file, 'r') as fin:
+        for line in fin:
+            tst_is.append([int(t) for t in line.split()])
+
+    # get all indices
+    all_is = []
+    for i_list in tst_is:
+        all_is.extend(i_list)
+    all_is_set = set(all_is)
+
+    # test if none of the indices is in multiple sets and make a full range
+    assert(len(all_is) == len(all_is_set))
+    assert(range(len(all_is)) == sorted(all_is))
+
+    # create cv indices
+    cv = []
+    for tst_i_list in tst_is:
+        trn_i_list = all_is_set - set(tst_i_list)
+        cv.append((sorted(trn_i_list), sorted(tst_i_list)))
+
+    return cv
+
+
