@@ -574,7 +574,7 @@ def write_tuple_list(f, tuple_list):
         handle.close()
 
 
-def parse_cross_validation_file(cv_file):
+def read_cross_validation(cv_file):
     '''
     Each line contains a list of test set indices, all other indices are
     assumed to be train set.
