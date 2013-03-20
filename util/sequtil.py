@@ -37,6 +37,30 @@ aa_short = list(itertools.chain.from_iterable([aa_unambiguous_short,
 aa_name = list(itertools.chain.from_iterable([aa_unambiguous_name,
         aa_ambiguous_name, aa_special_name, aa_ter_name]))
 
+# human mutations: key is from, values are occuring to mutations
+non_zero_mutation_counts = {
+    'A':  'DEGPSTV',
+    'R':  'CQGHILKMPSTW',
+    'N':  'DHIKSTY',
+    'D':  'ANEGHYV',
+    'C':  'RGFSWY',
+    'E':  'ADQGKV',
+    'Q':  'REHLKP',
+    'G':  'ARDCESWV',
+    'H':  'RNDQLPY',
+    'I':  'RNLKMFSTV',
+    'L':  'RQHIMFPSWV',
+    'K':  'RNEQIMT',
+    'M':  'RILKTV',
+    'F':  'CILSYV',
+    'P':  'ARQHLST',
+    'S':  'ARNCGILFPTWY',
+    'T':  'ARNIKMPS',
+    'W':  'RCGLS',
+    'Y':  'NDCHFS',
+    'V':  'ADEGILMF'
+}
+
 # amino acid scales
 
 # 19 varimax Georgiev scales, each row is a scale, the order of the rows is
