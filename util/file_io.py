@@ -1,7 +1,7 @@
 import os
 
 ### not sure if this is realy handy...
-from ssbc import protein
+from spica import protein
 
 '''
 Created on Sep 10, 2011
