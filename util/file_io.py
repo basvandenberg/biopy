@@ -515,6 +515,39 @@ def write_ids(f, ids):
         handle.close()
 
 
+def read_names(f):
+    
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    for line in handle:
+        name = line.strip()
+        yield(name)
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+
+def write_names(f, names):
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'w')
+
+    for name in names:
+        handle.write('%s\n' % (name.strip()))
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+
 def read_dict(handle, value_type, num_cols=1):
     result = {}
     for line in handle:
