@@ -18,7 +18,28 @@ class RocCollection(object):
     def add(self, r):
         self.roc_list.append(r)
 
-    # TODO: add functions for multiple roc comparison plots
+    def save_roc_plot(self, f, colors, linestyles, transparent=False, dpi=300):
+
+        # TODO turn this into create empty ROC axes function
+        # create figure axes
+        fig = pyplot.figure()
+        ax = fig.add_subplot(1, 1, 1)
+
+        # plot the random classification line
+        ax.plot([0, 1], [0, 1], color='#babdb6', linestyle='--')
+
+        # plot all rocs in the collection
+        for i, r in enumerate(self.roc_list):
+            r.add_to_roc_axes(ax, color=colors[i], linestyle=linestyles[i])
+
+        # general plot settings
+        ax.grid()
+        ax.set_xlabel('false positive rate')
+        ax.set_ylabel('true positive rate')
+        ax.legend(loc="lower right", prop={'size': 8})
+
+        fig.savefig(f, transparent=transparent)
+        pyplot.close(fig)
 
     def save_avg_roc_plot(self, f, color='#3465a4', linestyle='-',
                 subcolor='#d3d7cf', sublinestyle='-', transparent=False):
@@ -29,6 +50,7 @@ class RocCollection(object):
     def get_avg_roc_plot(self, color='#3465a4', linestyle='-',
                 subcolor='#d3d7cf', sublinestyle='-', avg_only=False):
 
+        # TODO turn this into create empty ROC axes function
         # create figure axes
         fig = pyplot.figure()
         ax = fig.add_subplot(1, 1, 1)
