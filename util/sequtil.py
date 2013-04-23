@@ -358,9 +358,9 @@ def state_subseq(seq, state_seq, state_letter):
                       for i, l in enumerate(seq)])
 
 def state_subseq_composition(seq, state, seq_alph, state_alph):
-    result = numpy.array()
+    result = []
     for l in state_alph:
-        result.append(seq_composition(state_subseq(seq, state, l), seq_alph))
+        result.extend(seq_composition(state_subseq(seq, state, l), seq_alph))
     return result
 
 def ss_aa_composition(protein, ss):
