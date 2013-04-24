@@ -18,6 +18,9 @@ class RocCollection(object):
     def add(self, r):
         self.roc_list.append(r)
 
+    def is_empty(self):
+        return len(self.roc_list) == 0
+
     def save_roc_plot(self, f, colors, linestyles, transparent=False, dpi=300):
 
         # TODO turn this into create empty ROC axes function
