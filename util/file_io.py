@@ -1,7 +1,7 @@
 import os
 
 ### not sure if this is realy handy...
-from spica import protein
+from spice import protein
 
 '''
 Created on Sep 10, 2011
