@@ -811,23 +811,29 @@ def avg_seq_signal(sequence, scale, window=9, edge=0.0):
 def auc_seq_signal(sequence, scale, window=9, edge=0.0, threshold=1.0):
     '''
     This function returns sequence signal area above and underneeth the
-    specified threshold.
+    specified threshold, normalized by the sequence length.
 
     The most basic area estimation is used.
+
+    >>> s = 'AAABBBCCCAAA'
+    >>> sc = {'A': 0.0, 'B': 1.0, 'C': -1.0}
+    >>> auc_seq_signal(s, sc, window=3, edge=0.0, threshold=0.5)
+    (0.125, 0.125)
     '''
 
     area_above = 0.0
     area_below = 0.0
 
-    for value in seq_signal(sequence, scale, window, edge):
+    sig = seq_signal(sequence, scale, window, edge)
+    for value in sig:
         if value > threshold:
             area_above += value - threshold
-        elif value < threshold:
-            area_below += threshold - value
+        elif value < -1.0 * threshold:
+            area_below += -1.0 * value - threshold
         else:
             pass
 
-    return (area_above, area_below)
+    return (area_above / len(sequence), area_below / len(sequence))
 
 
 def codon_count(orf):
