@@ -18,6 +18,9 @@ def read_fasta(f, filter_ids=None):
     # open file if path is provided instead of file
     if(type(f) == file):
         handle = f
+    # HACK to handle response of fasta download from uniprot website
+    elif(f.__class__.__name__ == 'addinfourl'):
+        handle = f
     else:
         handle = open(f, 'r')
 
