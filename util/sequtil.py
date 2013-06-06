@@ -422,6 +422,14 @@ def ambiguous_aa(codon):
 # ambiguous codon table mapping
 codon_table = dict(zip(codons, [ambiguous_aa(c) for c in codons]))
 
+
+def amino_acid_codons(aa):
+    '''
+    Returns the list of codons that encode for the provided amino acid aa.
+    '''
+    codon_is = [i for i, a in enumerate(codon_aas) if a == aa]
+    return [codons_unambiguous[i] for i in codon_is]
+
 '''
 # number of codons per amino acid
 ncodon_per_aa = numpy.array([codon_aas.count(l) for l in codon_aas])
@@ -949,15 +957,57 @@ non_zero_mutation_counts = {
 
 
 def hamming_distance(s0, s1):
+    '''
+    Returns the Hamming distance between the two equal lengths sequences s0 and
+    s1. It returns the sum of the pairwise character distances. Distance
+    between two characters is zero if the two characters are the same, one
+    otherwise.
+
+    Args:
+        s0 (str):
+        s1 (str):
+
+    >>> hamming_distance('AAA', 'AAA')
+    0
+    >>> hamming_distance('AAA', 'AAB')
+    1
+    >>> hamming_distance('AAA', 'BBB')
+    3
+    '''
     assert(len(s0) == len(s1))
     return sum([not s0[i] == s1[i] for i in range(len(s0))])
 
 
 def dist_one_codons(codon):
+    '''
+    This function returns all (unambiguous) codons that have a Hamming distance
+    of one to the provided (unambiguous) codon.
+
+    Args:
+        codon (str): An unambiguous codon.
+    Raises:
+        ValueError: TODO
+
+    >>> sorted(dist_one_codons('AAA'))
+    ['AAC', 'AAG', 'AAT', 'ACA', 'AGA', 'ATA', 'CAA', 'GAA', 'TAA']
+    '''
     return [c for c in codons_unambiguous if hamming_distance(codon, c) == 1]
 
 
 def dist_one_amino_acids(codon):
+    '''
+    This function returns all amino acids for which one of their codons is one
+    Hamming distance away of the provided codon. This means that all amino
+    acids are returned that can be obtained by a single mutation of the codon.
+
+    Args:
+        codon (str):
+    Raises:
+        TODO
+
+    >>> dist_one_amino_acids('AAA')
+    ['*', 'E', 'I', 'K', 'N', 'Q', 'R', 'T']
+    '''
     codons = dist_one_codons(codon)
     return sorted(set([codon_table_unambiguous[c] for c in codons]))
 
