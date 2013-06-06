@@ -82,6 +82,67 @@ def write_fasta(f, seqs):
         handle.close()
 
 
+# This is a generator function
+def read_ensembl_fasta(f, filter_ids=None):
+    '''
+    '''
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    # initialize sequence id and string to an empty string
+    seq_id = ""
+    seq_str = ""
+
+    # iterate over each line in the fasta file
+    for line in handle:
+
+        if(seq_id == "" and seq_str == ""):
+            if(line[0] == ">"):
+                seq_id = line.split()[0][1:]
+                # added for ensembl stuff
+                ensembl_tokens = line.split()[1:]
+                ensembl_dict = {}
+                for token in ensembl_tokens:
+                    items = token.split(':')
+                    ensembl_dict[items[0]] = ':'.join(items[1:])
+            elif(line[0] == '#'):
+                pass
+            elif(line.strip()):
+                # non-empty line...
+                print(line.strip())
+                raise(Exception, "Error in fasta file")
+        else:
+            if(line.strip() == "" or line[0] == ">"):
+                if(filter_ids is None or seq_id in filter_ids):
+                    yield (seq_id, seq_str, ensembl_dict)
+                seq_str = ""
+                if(line[0] == ">"):
+                    seq_id = line.split()[0][1:]
+                    # added for ensembl stuff
+                    ensembl_tokens = line.split()[1:]
+                    ensembl_dict = {}
+                    for token in ensembl_tokens:
+                        items = token.split(':')
+                        ensembl_dict[items[0]] = ':'.join(items[1:])
+                else:
+                    seq_id = ""
+            else:
+                seq_str += line.strip()
+
+    # return the last sequence (not if the file was empty)
+    if not(seq_id == ""):
+        if(filter_ids is None or seq_id in filter_ids):
+            yield (seq_id, seq_str, ensembl_dict)
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+
 def read_pfam(f):
 
     # open file if path is provided instead of file
@@ -160,13 +221,25 @@ def read_mutation(f):
     tuples = []
     for line in handle:
         tokens = line.split()
-        row = []
-        for index, t in enumerate(types):
-            if(index == 4 and tokens[index] == 'None'):
-                row.append(None)
-            else:
-                row.append(t(tokens[index]))
-        tuples.append(tuple(row))
+
+        uni_id = tokens[0]
+        pos = int(tokens[1])
+        fr = tokens[2]
+        to = tokens[3]
+        label = int(tokens[4])
+        pep = tokens[5]
+        pep_i = int(tokens[6])
+        codons = tokens[7]
+        fr_codon = tokens[8]
+        to_codons = tokens[9]
+        pdb_id = tokens[10]
+        pdb_resnum = int(tokens[11])
+
+        if(pdb_id == 'None'):
+            pdb_id = None
+        
+        tuples.append((uni_id, pos, fr, to, label, pep, pep_i, codons,
+                       fr_codon, to_codons, pdb_id, pdb_resnum))
 
     # close file if we opened it
     if not(type(f) == file):
@@ -176,9 +249,36 @@ def read_mutation(f):
 
 
 def write_mutation(f, mutations):
-    assert(all([len(m) == 6 for m in mutations]))
+    assert(all([len(m) == 12 for m in mutations]))
     write_tuple_list(f, mutations)
 
+def read_mut(f):
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    types = (str, int, str, str)
+
+    tuples = []
+    for line in handle:
+        tokens = line.split()
+        row = []
+        for index, t in enumerate(types):
+            row.append(t(tokens[index]))
+        tuples.append(tuple(row))
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+    return tuples
+
+def write_mut(f, mutations):
+    assert(all([len(m) == 4 for m in mutations]))
+    write_tuple_list(f, mutations)
 
 def read_pdb_dir(pdb_fs, pdb_dir):
     '''
