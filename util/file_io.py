@@ -143,6 +143,23 @@ def read_ensembl_fasta(f, filter_ids=None):
         handle.close()
 
 
+def read_flex(f):
+    ids, seqs = zip(*read_fasta(f))
+    flex_strings = [s.split(',') for s in seqs]
+    flex_floats = []
+    for f in flex_strings:
+        flex_floats.append([float(i) for i in f if not i.strip() == ''])
+    return zip(ids, flex_floats)
+
+
+def write_flex(f, flex_data):
+    ids, flex_floats = zip(*flex_data)
+    flex_strings = []
+    for flex in flex_floats:
+        flex_strings.append(','.join(['%.3f' % (fl) for fl in flex]))
+    write_fasta(f, zip(ids, flex_strings))
+
+
 def read_pfam(f):
 
     # open file if path is provided instead of file
