@@ -929,33 +929,6 @@ def probably_nucleotide(sequence):
 #
 ###############################################################################
 
-'''
-# human mutations: key is from, values are occuring to mutations
-non_zero_mutation_counts = {
-    'A':  'DEGPSTV',
-    'R':  'CQGHILKMPSTW',
-    'N':  'DHIKSTY',
-    'D':  'ANEGHYV',
-    'C':  'RGFSWY',
-    'E':  'ADQGKV',
-    'Q':  'REHLKP',
-    'G':  'ARDCESWV',
-    'H':  'RNDQLPY',
-    'I':  'RNLKMFSTV',
-    'L':  'RQHIMFPSWV',
-    'K':  'RNEQIMT',
-    'M':  'RILKTV',
-    'F':  'CILSYV',
-    'P':  'ARQHLST',
-    'S':  'ARNCGILFPTWY',
-    'T':  'ARNIKMPS',
-    'W':  'RCGLS',
-    'Y':  'NDCHFS',
-    'V':  'ADEGILMF'
-}
-'''
-
-
 def hamming_distance(s0, s1):
     '''
     Returns the Hamming distance between the two equal lengths sequences s0 and
@@ -1050,6 +1023,11 @@ def impossible_single_mutation_aa_substitutions():
     return sorted(set(aa_substitutions()) -
                   set(possible_single_mutation_aa_substitutions()))
 
+def single_mutation_aa_substitution_dict():
+    result = {}
+    for fr, to in possible_single_mutation_aa_substitutions():
+        result[fr] = result.setdefault(fr, '') + to
+    return result
 
 def single_mutation_aa_substitution_stats():
     subs = single_mutation_aa_substitutions()
