@@ -233,8 +233,6 @@ def read_mutation(f):
     else:
         handle = open(f, 'r')
 
-    types = (str, int, str, str, str, int)
-
     tuples = []
     for line in handle:
         tokens = line.split()
@@ -469,6 +467,45 @@ def write_residue_rank(f, rank_data):
     assert(all([len(r) == 7 for r in rank_data]))
     write_tuple_list(f, rank_data)
 
+
+def read_msa_dir(msa_fs, msa_dir):
+
+    msa_data = []
+
+    for msa_f in msa_fs:
+
+        msa_f = os.path.join(msa_dir, msa_f)
+
+        if(os.path.exists(msa_f)):
+            msa = read_msa(msa_f)
+        else:
+            msa = None
+
+        msa_data.append((msa_f, msa))
+
+    return msa_data
+
+
+def write_msa_dir(msa_dir, msa_data):
+
+    if not(os.path.exists(msa_dir)):
+        os.makedirs(msa_dir)
+
+    for (msa_f, msa) in msa_data:
+        if not(msa is None):
+            out_f = os.path.join(msa_dir, msa_f)
+            write_msa(out_f, msa)
+
+
+def read_msa(f):
+    return [seq for seq in read_ids(f)]
+
+
+def write_msa(f, msa):
+    assert(len(msa) > 0)
+    assert(all([type(m) == str for m in msa]))
+    assert(all([len(msa[0]) == len(m) for m in msa]))
+    write_ids(f, msa)
 
 def read_classification_result(f, score=None):
 
