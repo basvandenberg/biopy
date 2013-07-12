@@ -14,9 +14,11 @@ class RocCollection(object):
 
     def __init__(self):
         self.roc_list = []
+        self.roc_names = []
 
-    def add(self, r):
+    def add(self, r, name=''):
         self.roc_list.append(r)
+        self.roc_names.append(name)
 
     def is_empty(self):
         return len(self.roc_list) == 0
@@ -33,7 +35,8 @@ class RocCollection(object):
 
         # plot all rocs in the collection
         for i, r in enumerate(self.roc_list):
-            r.add_to_roc_axes(ax, color=colors[i], linestyle=linestyles[i])
+            r.add_to_roc_axes(ax, label=self.roc_names[i], color=colors[i],
+                              linestyle=linestyles[i])
 
         # general plot settings
         ax.grid()
