@@ -159,6 +159,14 @@ def write_flex(f, flex_data):
         flex_strings.append(','.join(['%.3f' % (fl) for fl in flex]))
     write_fasta(f, zip(ids, flex_strings))
 
+def read_interaction_counts(f):
+    data = read_tuple_list(f, (str, int, int, int, int, int, int))
+    return [(item[0], item[1:]) for item in data]
+
+def write_interaction_counts(f, interaction_counts_data):
+    tuples = [(i[0], i[1][0], i[1][1], i[1][2], i[1][3], i[1][4], i[1][5])
+              for i in interaction_counts_data]
+    write_tuple_list(f, tuples)
 
 def read_pfam(f):
 
