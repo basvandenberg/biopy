@@ -245,6 +245,34 @@ aa_subset_dict = {
 aa_subsets = sorted(aa_subset_dict.keys())
 
 
+# amino acids subdivided into three clusters per 7 properties as obtained
+# from PROFEAT paper
+
+aa_property_divisions = {
+    'hydrophobicity': ['RKEDQN', 'GASTPHY', 'CLVIMFW'],
+    'normvdw': ['GASTPD', 'NVEQIL', 'MHKFRYW'],
+    'polarity': ['LIFWCMVY', 'PATGS', 'HQRKNED'],
+    'polarizability': ['GASDT', 'CPNVEQIL', 'KMHFRYW'],
+    'charge': ['KR', 'ANCQGHILMFPSTWYV','DE'],
+    'ss': ['EALMQKRH', 'VIYCWFT', 'GNPSD'],
+    'sa': ['ALFCGIVW', 'PKQEND', 'MPSTHY']
+}
+
+def property_division_mapping(property):
+
+    default_letters = 'ABC'
+    clusters = pf_aa_divisions[property]
+    assert(len(default_letters) == len(clusters)
+
+    d = {}
+    for letter, cluster in zip(default_letters, clusters):
+        for aa in cluster:
+            d[aa] = letter
+
+    assert(sorted(d.keys()) == sorted(aa_unambiguous_alph))
+
+    return d
+
 ###############################################################################
 #
 # AMINO ACID ANNOTATION SEQUENCES
@@ -651,6 +679,32 @@ def autocorrelation_geary(sequence, scale, lag):
         return 0.0  # TODO should this be zero???
     else:
         return norm_denom / norm_enume
+
+def property_ctd(seq, property):
+
+    # NOT cluster alphabet must be ABC
+
+    # get mapping from amino acids to the three property clusters
+    letter_mapping = property_division_mapping(property)
+
+    # map aa protein sequence to property sequence (3-letter alphabet)
+    state_seq = [letter_mapping[l] for l in seq]
+
+    # composition features
+    c0, c1, c2 = seq_composition(state_seq, 'ABC'):
+
+    # transition features
+    seq_length = float(len(seq))
+    t0 = (seq.count('AB') + seq.count('BA')) / seq_length
+    t1 = (seq.count('AC') + seq.count('CA')) / seq_length
+    t2 = (seq.count('BC') + seq.count('CB')) / seq_length
+
+    # distribution
+    d0 = 0.0
+    d1 = 0.0
+    d2 = 0.0
+
+    return (c0, c1, c2, t0, t1, t2, d0, d1, d2)
 
 def state_subseq(seq, state_seq, state_letter):
     '''
