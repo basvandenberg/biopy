@@ -538,6 +538,119 @@ def seq_composition(seq, alph):
         raise ValueError('Cannot calculate composition of empty sequence.')
     return seq_count(seq, alph) / float(len(seq))
 
+def autocorrelation_mb(sequence, scale, lag):
+    '''
+    This function returns uses the provided scale to transform the sequence seq
+    into a signal and returns the autocorrelation of this signal for the given
+    lag.
+
+    normalized Moreau-Broto autocorrelation as given in Li (2006) PROFEAT.
+
+    TODO formula
+
+    >>> autocorrelation_mb('ABACABAC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
+    0.5
+    >>> autocorrelation_mb('ABACABAC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 2)
+    -0.5
+    >>> autocorrelation_mb('BBBBCCCC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
+    -1.0
+    >>> autocorrelation_mb('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
+    1.0
+    '''
+
+    # transform sequence to signal using the provided scale
+    signal = numpy.array(seq_signal_raw(sequence, scale))
+
+    # calculate autocorrelation
+    autocorr = sum(signal[:-lag] * signal[lag:]) 
+
+    # return normalized autocorrelation
+    return autocorr / float(len(sequence) - lag)
+
+def autocorrelation_moran(sequence, scale, lag):
+    '''
+    This function returns uses the provided scale to transform the sequence seq
+    into a signal and returns the autocorrelation of this signal for the given
+    lag.
+
+    Moran autocorrelation as given in Li (2006) PROFEAT.
+
+    TODO formula
+
+    >>> autocorrelation_moran('ABACABAC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
+    1.0
+    >>> autocorrelation_moran('ABACABAC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 2)
+    -1.0
+    >>> autocorrelation_moran('BBBBCCCC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
+    -1.0
+    >>> autocorrelation_moran('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
+    0.0
+    '''
+
+    # transform sequence to signal using the provided scale
+    signal = numpy.array(seq_signal_raw(sequence, scale))
+
+    # calculate average signal value
+    avg_signal = numpy.mean(signal)
+
+    # subtracted average from signal
+    signal = signal - avg_signal
+
+    # calculate autocorrelation
+    autocorr = sum(signal[:-lag] * signal[lag:])
+    
+    # normalize
+    norm_autocorr = autocorr / float(len(sequence) - lag)
+
+    # second normalization
+    sec_norm = sum(numpy.square(signal)) / float(len(sequence))
+
+    if(sec_norm == 0):
+        return 0.0  # TODO should this be zero???
+    else:
+        return norm_autocorr / sec_norm
+
+
+def autocorrelation_geary(sequence, scale, lag):
+    '''
+    This function returns uses the provided scale to transform the sequence seq
+    into a signal and returns the autocorrelation of this signal for the given
+    lag.
+
+    Geary autocorrelation as given in Li (2006) PROFEAT.
+
+    TODO formula
+
+    >>> autocorrelation_geary('ABACABAC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
+    0.0
+    >>> autocorrelation_geary('ABACABAC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 2)
+    1.75
+    >>> autocorrelation_geary('BBBBCCCC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
+    1.75
+    >>> autocorrelation_geary('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
+    0.0
+    '''
+
+    # transform sequence to signal using the provided scale
+    signal = numpy.array(seq_signal_raw(sequence, scale))
+
+    # calculate average signal value
+    avg_signal = numpy.mean(signal)
+
+    # 
+    denom = sum(numpy.square(signal[:-lag] - signal[lag:]))
+
+    norm_denom = denom / (2.0 * (len(sequence) - lag))
+
+    #
+    enume = sum(numpy.square(signal - avg_signal))
+
+    norm_enume = enume / (len(sequence) - 1.0)
+    
+    if(norm_enume == 0):
+        return 0.0  # TODO should this be zero???
+    else:
+        return norm_denom / norm_enume
 
 def state_subseq(seq, state_seq, state_letter):
     '''
