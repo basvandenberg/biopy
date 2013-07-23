@@ -44,13 +44,13 @@ class RocCollection(object):
         ax.set_ylabel('true positive rate')
         ax.legend(loc="lower right", prop={'size': 8})
 
-        fig.savefig(f, transparent=transparent)
+        fig.savefig(f, transparent=transparent, bbox_inches='tight')
         pyplot.close(fig)
 
     def save_avg_roc_plot(self, f, color='#3465a4', linestyle='-',
                 subcolor='#d3d7cf', sublinestyle='-', transparent=False):
         fig = self.get_avg_roc_plot(color, linestyle, subcolor, sublinestyle)
-        fig.savefig(f, transparent=transparent)
+        fig.savefig(f, transparent=transparent, bbox_inches='tight')
         pyplot.close(fig)
 
     def get_avg_roc_plot(self, color='#3465a4', linestyle='-',
@@ -259,7 +259,7 @@ class ROC(object):
     def save_roc_plot(self, f, label='', color='#3465a4', linestyle='-',
             transparent=False):
         fig = self.get_roc_plot(f, label, color, linestyle)
-        fig.savefig(f, transparent=transparent)
+        fig.savefig(f, transparent=transparent, bbox_inches='tight')
         pyplot.close(fig)
 
     def get_roc_plot(self, f, label='', color='#3465a4', linestyle='-'):
