@@ -1,6 +1,21 @@
+import os
 import itertools
 import numpy
 
+from util import file_io
+
+###############################################################################
+# Paths to data files
+###############################################################################
+
+# path to data directory
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+
+# amino acid scale files
+AA_SCALE_DIR = os.path.join(DATA_DIR, 'amino_acid_scales')
+AA_SCALE_DB_F = os.path.join(AA_SCALE_DIR, 'aascale1')
+AA_SCALE_GEORGIEV_F = os.path.join(AA_SCALE_DIR, 'georgiev.txt')
+AA_SCALE_AAINDEX_F = os.path.join(AA_SCALE_DIR, 'aaindex1')
 
 ###############################################################################
 #
@@ -17,14 +32,14 @@ import numpy
 
 
 # unambiguos amino acid alphabet
-aa_unambiguous_alph = 'ARNDCEQGHILKMFPSTWYV'
+aa_unambiguous_alph = 'ARNDCQEGHILKMFPSTWYV'
 aa_unambiguous_short = [
-    'ala', 'arg', 'asn', 'asp', 'cys', 'glu', 'gln', 'gly', 'his', 'ile',
+    'ala', 'arg', 'asn', 'asp', 'cys', 'gln', 'glu', 'gly', 'his', 'ile',
     'leu', 'lys', 'met', 'phe', 'pro', 'ser', 'thr', 'trp', 'tyr', 'val'
 ]
 aa_unambiguous_name = [
     'alanine', 'arginine', 'asparagine', 'aspartic acid', 'cysteine',
-    'glutamic acid', 'glutamine', 'glycine', 'histidine', 'isoleucine',
+    'glutamine', 'glutamic acid', 'glycine', 'histidine', 'isoleucine',
     'leucine', 'lysine', 'methionine', 'phenylalanine', 'proline', 'serine',
     'threonine', 'tryptophan', 'tyrosine', 'valine'
 ]
@@ -57,7 +72,7 @@ aa_name = list(itertools.chain.from_iterable([
     aa_unambiguous_name, aa_ambiguous_name, aa_special_name, aa_ter_name
 ]))
 
-# mapping from ambiguous letters to list of ambiguous letters
+# mapping from list of (sorted) unambiguous aas to ambiguous aa letter
 map_to_ambiguous_aa = dict(zip(list(aa_unambiguous_alph),
                            list(aa_unambiguous_alph)))
 map_to_ambiguous_aa['*'] = '*'
@@ -81,124 +96,50 @@ map_to_ambiguous_aa['GQ'] = 'Z'
 ###############################################################################
 
 
+def _standardized_scale(scale):
+    letters, values = zip(*scale.iteritems())
+    mean = numpy.mean(values)
+    std = numpy.std(values)
+    st_values = [(v - mean) / std for v in values]
+    return dict(zip(letters, st_values))
+
+
 # 19 varimax Georgiev scales
-georgiev_scales_mat = numpy.array([
-    [
-        0.57, -2.8, -2.02, -2.46, 2.66, -3.08, -2.54, 0.15, -0.39, 3.1, 2.72,
-        -3.89, 1.89, 3.12, -0.58, -1.1, -0.65, 1.89, 0.79, 2.64],
-    [
-        3.37, 0.31, -1.92, -0.66, -1.52, 3.45, 1.82, -3.49, 1., 0.37, 1.88,
-        1.47, 3.88, 0.68, -4.33, -2.05, -1.6, -0.09, -2.62, 0.03],
-    [
-        -3.66, 2.84, 0.04, -0.57, -3.29, 0.05, -0.82, -2.97, -0.63, 0.26, 1.92,
-        1.95, -1.57, 2.4, -0.02, -2.19, -1.39, 4.21, 4.11, -0.67],
-    [
-        2.34, 0.25, -0.65, 0.14, -3.77, 0.62, -1.85, 2.06, -3.49, 1.04, 5.33,
-        1.17, -3.58, -0.35, -0.21, 1.36, 0.63, -2.77, -0.63, 2.34],
-    [
-        -1.07, 0.2, 1.61, 0.75, 2.96, -0.49, 0.09, 0.7, 0.05, -0.05, 0.08,
-        0.53, -2.55, -0.88, -8.31, 1.78, 1.35, 0.72, 1.89, 0.64],
-    [
-        -0.4, -0.37, 2.08, 0.24, -2.23, -0., -0.6, 7.47, 0.41, -1.18, 0.09,
-        0.1, 2.07, 1.62, -1.82, -3.36, -2.45, 0.86, -0.53, -2.01],
-    [
-        1.23, 3.81, 0.4, -5.15, 0.44, -5.66, 0.25, 0.41, 1.61, -0.21, 0.27,
-        4.01, 0.84, -0.15, -0.12, 1.39, -0.65, -1.07, -1.3, -0.33],
-    [
-        -2.32, 0.98, -2.47, -1.17, -3.49, -0.11, 2.11, 1.62, -0.6, 3.45, -4.06,
-        -0.01, 1.85, -0.41, -1.18, -1.21, 3.43, -1.66, 1.31, 3.93],
-    [
-        -2.01, 2.43, -0.07, 0.73, 2.22, 1.49, -1.92, -0.47, 3.55, 0.86, 0.43,
-        -0.26, -2.05, 4.2, 0., -2.83, 0.34, -5.87, -0.56, -0.21],
-    [
-        1.31, -0.99, 7.02, 1.5, -3.78, -2.26, -1.67, -2.9, 1.52, 1.98, -1.2,
-        -1.66, 0.78, 0.73, -0.66, 0.39, 0.24, -0.66, -0.95, 1.27],
-    [
-        -1.14, -4.9, 1.32, 1.51, 1.98, -1.62, 0.7, -0.98, -2.28, 0.89, 0.67,
-        5.86, 1.53, -0.56, 0.64, -2.92, -0.53, -2.49, 1.91, 0.43],
-    [
-        0.19, 2.09, -2.44, 5.61, -0.43, -3.97, -0.27, -0.62, -3.12, -1.67,
-        -0.29, -0.06, 2.44, 3.54, -0.92, 1.27, 1.91, -0.3, -1.26, -1.71],
-    [
-        1.66, -3.08, 0.37, -3.85, -1.03, 2.3, -0.99, -0.11, -1.45, -1.02,
-        -2.47, 1.38, -0.26, 5.25, -0.37, 2.86, 2.66, -0.5, 1.57, -2.93],
-    [
-        4.39, 0.82, -0.89, 1.28, 0.93, -0.06, -1.56, 0.15, -0.77, -1.21, -4.79,
-        1.78, -3.09, 1.73, 0.17, -1.88, -3.07, 1.64, 0.2, 4.22],
-    [
-        0.18, 1.32, 3.13, -1.98, 1.43, -0.35, 6.22, -0.53, -4.18, -1.78, 0.8,
-        -2.71, -1.39, 2.14, 0.36, -2.42, 0.2, -0.72, -0.76, 1.06],
-    [
-        -2.6, 0.69, 0.79, 0.05, 1.45, 1.51, -0.18, 0.35, -2.91, 5.71, -1.43,
-        1.62, -1.02, 1.1, 0.08, 1.75, -2.2, 1.75, -5.19, -1.31],
-    [
-        1.49, -2.62, -1.54, 0.9, -1.15, -2.29, 2.72, 0.3, 3.37, 1.54, 0.63,
-        0.96, -4.32, 0.68, 0.16, -2.77, 3.73, 2.73, -2.56, -1.97],
-    [
-        0.46, -1.49, -1.71, 1.38, -1.64, -1.47, 4.35, 0.32, 1.87, 2.11, -0.24,
-        -1.09, -1.34, 1.46, -0.34, 3.36, -5.46, -2.2, 2.87, -1.21],
-    [
-        -4.22, -2.57, -0.25, -0.03, -1.05, 0.15, 0.92, 0.05, 2.17, -4.18, 1.01,
-        1.36, 0.09, 2.33, 0.04, 2.67, -0.73, 0.9, -3.43, 4.77]
-])
+georgiev_scales = file_io.read_scales(AA_SCALE_GEORGIEV_F)
+georgiev_st_scales = [_standardized_scale(s) for s in georgiev_scales]
 
-# 10 BLOSUM62-derived Georgiev scales
-georgiev_blosum_scales_mat = numpy.array([
-    [
-        0.077, 1.014, 1.511, 1.551, -1.084, 1.477, 1.094, 0.849, 0.716, -1.462,
-        -1.406, 1.135, -0.963, -1.619, 0.883, 0.844, 0.188, -1.577, -1.142,
-        -1.127],
-    [
-        -0.916, 0.189, 0.215, 0.005, -1.112, 0.229, 0.296, 0.174, 1.548,
-        -1.126, -0.856, -0.039, -0.585, 1.007, -0.675, -0.448, -0.733, 2.281,
-        1.74, -1.227],
-    [
-        0.526, -0.86, -0.046, 0.323, 1.562, -0.67, -0.871, 1.726, -0.802,
-        -0.761, -0.879, -0.802, -0.972, -0.311, 0.382, 0.423, 0.178, 1.166,
-        -0.582, -0.633],
-    [
-        0.004, -0.609, 1.009, 0.493, 0.814, -0.355, -0.718, 0.093, 1.547,
-        0.382, -0.172, -0.849, -0.528, 0.623, -0.869, 0.317, -0.012, -1.61,
-        0.747, 0.064],
-    [
-        0.24, 1.277, 0.12, -0.991, 1.828, -0.284, 0.5, -0.548, 0.35, -0.599,
-        0.032, 0.819, 0.236, -0.549, -1.243, 0.2, 0.022, 0.122, -0.119,
-        -0.596],
-    [
-        0.19, 0.195, 0.834, 0.01, -1.048, -0.075, -0.08, 1.186, -0.785, 0.276,
-        0.344, 0.097, 0.365, 0.29, -2.023, 0.541, 0.378, 0.239, -0.475, 0.158],
-    [
-        0.656, 0.661, -0.033, -1.615, -0.742, -1.014, -0.442, 1.213, 0.655,
-        -0.132, 0.109, 0.213, 0.062, -0.021, 0.845, 0.009, -0.304, -0.542,
-        0.241, 0.014],
-    [
-        -0.047, 0.175, -0.57, 0.526, 0.379, 0.363, 0.202, 0.874, -0.076, 0.198,
-        0.146, 0.129, 0.208, 0.098, -0.352, -0.797, -1.958, -0.398, -0.251,
-        0.016],
-    [
-        1.357, -0.219, -1.2, -0.15, -0.121, 0.769, 0.384, 0.009, -0.186,
-        -0.216, -0.436, 0.176, -0.56, 0.433, -0.421, 0.624, 0.149, -0.349,
-        0.713, 0.251],
-    [
-        0.333, -0.52, -0.139, -0.282, -0.102, 0.298, 0.667, 0.242, 0.99, 0.207,
-        -0.021, -0.85, 0.361, -1.288, -0.298, -0.129, 0.063, 0.499, -0.251,
-        0.607]
-])
+# 544 amino acid scales from AAindex ver.9.1
+aas_tuples = file_io.read_scales_db(AA_SCALE_AAINDEX_F)
+aaindex_scale_ids, aaindex_scale_descr, aaindex_scales = zip(*aas_tuples)
+aaindex_st_scales = [_standardized_scale(s) for s in aaindex_scales]
 
-
-def get_georgiev_scale(index, ambiguous=True):
+# TODO index_id? descr?
+def get_aaindex_scale(index, ambiguous=True, standardized=True):
     '''
+    If standardize, values (of the unambiguous amino acids) are standardized
+    to mean 0.0 and standard deviation 1.0.
     '''
-    scale = dict(zip(aa_unambiguous_alph, georgiev_scales_mat[index]))
+    if(standardized):
+        scale = aaindex_st_scales[index].copy()
+    else:
+        scale = aaindex_scales[index].copy()
+    
     return _get_scale(scale, ambiguous)
 
-
-def get_georgiev_blosum_scale(index, ambiguous=True):
+def get_georgiev_scale(index, ambiguous=True, standardized=True):
     '''
+    If standardize, values (of the unambiguous amino acids) are standardized
+    to mean 0.0 and standard deviation 1.0.
     '''
-    scale = dict(zip(aa_unambiguous_alph, georgiev_blosum_scales_mat[index]))
+    if(standardized):
+        scale = georgiev_st_scales[index].copy()
+    else:
+        scale = georgiev_scales[index].copy()
+    
     return _get_scale(scale, ambiguous)
 
+def get_georgiev_scales(ambiguous=True, standardized=True):
+    return [get_georgiev_scale(i, ambiguous, standardized) for i in xrange(19)]
 
 def _get_scale(scale, ambiguous):
     '''
@@ -213,10 +154,6 @@ def _get_non_aa_letter_dict():
     '''
     other_letters = aa_ambiguous_alph + aa_special_alph + aa_ter_alph
     return dict(zip(other_letters, len(other_letters) * [0.0]))
-
-georgiev_scales = [get_georgiev_scale(i) for i in xrange(19)]
-georgiev_blosum_scales = [get_georgiev_blosum_scale(i) for i in xrange(10)]
-
 
 ###############################################################################
 #
@@ -262,7 +199,7 @@ def property_division_mapping(property):
 
     default_letters = 'ABC'
     clusters = pf_aa_divisions[property]
-    assert(len(default_letters) == len(clusters)
+    assert(len(default_letters) == len(clusters))
 
     d = {}
     for letter, cluster in zip(default_letters, clusters):
@@ -566,13 +503,13 @@ def seq_composition(seq, alph):
         raise ValueError('Cannot calculate composition of empty sequence.')
     return seq_count(seq, alph) / float(len(seq))
 
+
 def autocorrelation_mb(sequence, scale, lag):
     '''
-    This function returns uses the provided scale to transform the sequence seq
-    into a signal and returns the autocorrelation of this signal for the given
-    lag.
+    This function uses the provided scale to transform the sequence seq into a
+    signal and returns the autocorrelation of this signal for the given lag.
 
-    normalized Moreau-Broto autocorrelation as given in Li (2006) PROFEAT.
+    Normalized Moreau-Broto autocorrelation as given in Li (2006) PROFEAT.
 
     TODO formula
 
@@ -680,6 +617,7 @@ def autocorrelation_geary(sequence, scale, lag):
     else:
         return norm_denom / norm_enume
 
+
 def property_ctd(seq, property):
 
     # NOT cluster alphabet must be ABC
@@ -691,7 +629,7 @@ def property_ctd(seq, property):
     state_seq = [letter_mapping[l] for l in seq]
 
     # composition features
-    c0, c1, c2 = seq_composition(state_seq, 'ABC'):
+    c0, c1, c2 = seq_composition(state_seq, 'ABC')
 
     # transition features
     seq_length = float(len(seq))
@@ -705,6 +643,7 @@ def property_ctd(seq, property):
     d2 = 0.0
 
     return (c0, c1, c2, t0, t1, t2, d0, d1, d2)
+
 
 def state_subseq(seq, state_seq, state_letter):
     '''
@@ -750,6 +689,42 @@ def state_subseq_composition(seq, state_seq, seq_alph, state_alph):
                       seq_alph))
     return result
 
+def segmented_sequence(seq, num_segments):
+    '''
+    This methods chops seq in num_segments (about) equals sized segments and
+    returns the list of sequence segments.
+
+    >>> s = 'AAAABBBBCCCC'
+    >>> segmented_sequence(s, 4)
+    ['AAA', 'ABB', 'BBC', 'CCC']
+    >>> segmented_sequence(s, 5)
+    ['AA', 'AA', 'BB', 'BBC', 'CCC']
+    
+    '''
+
+    if(num_segments > len(seq)):
+        raise ValueError('Number of segments must be smaller than seq length.')
+
+    if(num_segments < 0):
+        raise ValueError('Number of segments must be a positive integer.')
+
+    stepsize = len(seq) / num_segments
+    rest = len(seq) % num_segments
+
+    chop_indices = range(0, len(seq), stepsize)
+
+    add_rest = [0] * (num_segments - (rest - 1))
+    add_rest.extend(range(1, rest + 1))
+
+    chop_indices = [sum(i) for i in zip(chop_indices, add_rest)]
+    if(rest == 0):
+        chop_indices.append(len(seq))
+
+    segments = []
+    for i in range(len(chop_indices) - 1):
+        segments.append(seq[chop_indices[i]:chop_indices[i + 1]])
+
+    return segments
 
 def aa_count(protein):
     '''
@@ -759,14 +734,20 @@ def aa_count(protein):
     return seq_count(protein, aa_unambiguous_alph)
 
 
-def aa_composition(protein):
+def aa_composition(peptide, num_segments=1):
     '''
-    This function returns the amino acid composition of the provided protein
+    This function returns the amino acid composition of the provided peptide
     sequence. Only unambiguous amino acids are considered, therefore the
     result does not need to sum to 1.0.
     '''
-    return seq_composition(protein, aa_unambiguous_alph)
-
+    if(num_segments < 1):
+        raise ValueError('Number of segments should be positive integer')
+    if(num_segments == 1):
+        return seq_composition(peptide, aa_unambiguous_alph)
+    else:
+        segments = segmented_sequence(peptide, num_segments)
+        comps = [seq_composition(s, aa_unambiguous_alph) for s in segments]
+        return numpy.concatenate(comps)
 
 def ss_composition(protein_ss):
     '''

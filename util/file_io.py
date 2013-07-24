@@ -1,8 +1,5 @@
 import os
 
-### not sure if this is realy handy...
-from spice import protein
-
 '''
 Created on Sep 10, 2011
 
@@ -201,7 +198,19 @@ def read_pfam(f):
                 else:
                     current_id = ""
             else:
-                annotation = protein.Pfam.parse(line.strip())
+                #annotation = protein.Pfam.parse(line.strip())
+                tokens = line.strip().split()
+                start_pos = int(tokens[0])
+                end_pos = int(tokens[1])
+                hmm_acc = tokens[2]
+                hmm_name = tokens[3]
+                type_ = tokens[4]
+                bit_score = float(tokens[5])
+                e_value = float(tokens[6])
+                clan = None if tokens[7] == 'None' else tokens[7]
+                active_residues = eval(' '.join(tokens[8:]))
+                annotation = (start_pos, end_pos, hmm_acc, hmm_name, type_,
+                              bit_score, e_value, clan, active_residues)
                 current_annotations.append(annotation)
 
     # return annotations for the last item (not if the file was empty)
@@ -225,6 +234,7 @@ def write_pfam(f, pfam_data):
         handle.write('>%s\n' % (uni))
         for annotation in pfam:
             handle.write('%s\n' % (annotation.single_line_str()))
+            return '%i\t%i\t%s\t%s\t%s\t%.1f\t%e\t%s\t%s\n' % (annotation)
         handle.write('\n')
         handle.flush()
 
@@ -808,3 +818,84 @@ def read_cross_validation(cv_file):
     return cv
 
 
+def read_scales(f):
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    scales = []
+
+    first = True
+    for line in handle:
+        if(first):
+            letters = line.split(',')
+            first = False
+        else:
+            scale = [float(v) for v in line.split(',')]
+            assert(len(scale) == len(letters))
+            scales.append(dict(zip(letters, scale)))
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+    return scales
+
+
+def read_scales_db(f):
+    
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    scales = []
+
+    scale_id = None
+    scale_descr = None
+    scale = []
+    letters = None
+
+    for line in handle:
+        tokens = line.split()
+
+        if(len(tokens) > 0):
+
+            if(tokens[0] == '//'):
+                #append new scale
+                assert(len(letters) == len(scale))
+                scales.append((scale_id, scale_descr, 
+                               dict(zip(letters, scale))))
+                # reset variables for next scale
+                scale_id = None
+                scale_descr = None
+                scale = []
+                letters = None
+            elif(tokens[0] == 'H'):
+                scale_id = tokens[1]
+            elif(tokens[0] == 'D'):
+                scale_descr = ' '.join(tokens[1:])
+            elif(tokens[0] == 'I'):
+                firstrow = [t[0] for t in tokens[1:]]
+                lastrow = [t[-1] for t in tokens[1:]]
+                letters = firstrow + lastrow
+            # reading the scale...
+            elif not(letters is None):
+                for token in tokens:
+                    try:
+                        scale.append(float(token))
+                    except(ValueError):
+                        # TODO now append 0.0 if NA value...
+                        scale.append(0.0)
+            else:
+                pass
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+    return scales
