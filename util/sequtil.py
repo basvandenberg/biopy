@@ -853,7 +853,7 @@ def window_seq(seq, window_size, overlapping=False):
 filter_cache = {}
 
 
-def convolution_filter(window=9, edge=0.0):
+def convolution_filter(window=9, edge=0):
     '''
     This function returns a triangular convolution filter. The filter values
     add up to 1.0.
@@ -880,17 +880,17 @@ def convolution_filter(window=9, edge=0.0):
         raise ValueError('Window must be an uneven number.')
     if(window < 3):
         raise ValueError('Window must be 3 or larger.')
-    if(edge < 0.0 or edge > 1.0):
-        raise ValueError('The edge parameter must be in the range 0.0 to 1.0.')
+    if(edge < 0 or edge > 100):
+        raise ValueError('The edge parameter must be in the range 0 to 100.')
 
-    if(edge == 1.0):
+    if(edge == 100):
         result = numpy.ones(window) / window
         filter_cache[(window, edge)] = result
         return result
     else:
         result = numpy.ones(window)
         num = window / 2
-        forw = numpy.linspace(edge, 1.0, num, endpoint=False)
+        forw = numpy.linspace(edge / 100.0, 1.0, num, endpoint=False)
         result[:num] = forw
         result[-num:] = forw[::-1]
         result = result / result.sum()
@@ -918,7 +918,7 @@ def seq_signal_raw(sequence, scale):
     return [scale[letter] for letter in sequence]
 
 
-def seq_signal(sequence, scale, window=9, edge=0.0):
+def seq_signal(sequence, scale, window=9, edge=0):
     '''
     This function returns a smoothed sequence signal using the provided letter
     to value scale and a triangular smoothing filter with the provided window
@@ -954,7 +954,7 @@ def seq_signal(sequence, scale, window=9, edge=0.0):
         return numpy.convolve(signal, conv, 'valid')
 
 
-def avg_seq_signal(sequence, scale, window=9, edge=0.0):
+def avg_seq_signal(sequence, scale, window=9, edge=0):
     '''
     This function returns the average value of the smoothed sequence signal
     that is constructed using scale and a triangular filter with width window
@@ -964,7 +964,7 @@ def avg_seq_signal(sequence, scale, window=9, edge=0.0):
     return sum(sig) / len(sequence)
 
 
-def auc_seq_signal(sequence, scale, window=9, edge=0.0, threshold=1.0):
+def auc_seq_signal(sequence, scale, window=9, edge=0, threshold=1.0):
     '''
     This function returns sequence signal area above and underneeth the
     specified threshold, normalized by the sequence length.
