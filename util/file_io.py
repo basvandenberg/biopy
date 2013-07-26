@@ -832,6 +832,7 @@ def read_scales(f):
     for line in handle:
         if(first):
             letters = line.split(',')
+            letters = [l.strip() for l in letters]
             first = False
         else:
             scale = [float(v) for v in line.split(',')]
