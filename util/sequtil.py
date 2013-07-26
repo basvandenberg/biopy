@@ -964,7 +964,7 @@ def avg_seq_signal(sequence, scale, window=9, edge=0):
     return sum(sig) / len(sequence)
 
 
-def auc_seq_signal(sequence, scale, window=9, edge=0, threshold=1.0):
+def auc_seq_signal(sequence, scale, window=9, edge=0, threshold=10):
     '''
     This function returns sequence signal area above and underneeth the
     specified threshold, normalized by the sequence length.
@@ -976,6 +976,9 @@ def auc_seq_signal(sequence, scale, window=9, edge=0, threshold=1.0):
     >>> auc_seq_signal(s, sc, window=3, edge=0.0, threshold=0.5)
     (0.125, 0.125)
     '''
+
+    # HACK for spice website...
+    threshold = threshold / 10.0
 
     area_above = 0.0
     area_below = 0.0
