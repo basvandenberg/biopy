@@ -1,4 +1,5 @@
 import os
+import sys
 import itertools
 import numpy
 
@@ -504,6 +505,21 @@ def seq_composition(seq, alph):
     return seq_count(seq, alph) / float(len(seq))
 
 
+def autocorrelation(ac_type, sequence, scale, lag):
+    '''
+    Based on the autocorrelation type (ac_type), this function calls that
+    autocorrelation function and returns the result.
+
+    ValueError is raised if wrong ac_type is provided.
+    '''
+
+    try:
+        return getattr(sys.modules[__name__],
+                       'autocorrelation_%s' % (ac_type))(sequence, scale, lag)
+    except AttributeError:
+        raise ValueError('Wrong autocorrelation type provided.')
+
+
 def autocorrelation_mb(sequence, scale, lag):
     '''
     This function uses the provided scale to transform the sequence seq into a
@@ -522,6 +538,9 @@ def autocorrelation_mb(sequence, scale, lag):
     >>> autocorrelation_mb('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
     1.0
     '''
+
+    if(lag < 1):
+        raise ValueError('The provided lag should be a positive integer.')
 
     # transform sequence to signal using the provided scale
     signal = numpy.array(seq_signal_raw(sequence, scale))
