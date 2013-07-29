@@ -32,15 +32,15 @@ AA_SCALE_AAINDEX_F = os.path.join(AA_SCALE_DIR, 'aaindex1')
 ###############################################################################
 
 
-# unambiguos amino acid alphabet
-aa_unambiguous_alph = 'ARNDCQEGHILKMFPSTWYV'
+# unambiguos amino acid alphabet (alphabitic order full names)
+aa_unambiguous_alph = 'ARNDCEQGHILKMFPSTWYV'
 aa_unambiguous_short = [
-    'ala', 'arg', 'asn', 'asp', 'cys', 'gln', 'glu', 'gly', 'his', 'ile',
+    'ala', 'arg', 'asn', 'asp', 'cys', 'glu', 'gln', 'gly', 'his', 'ile',
     'leu', 'lys', 'met', 'phe', 'pro', 'ser', 'thr', 'trp', 'tyr', 'val'
 ]
 aa_unambiguous_name = [
     'alanine', 'arginine', 'asparagine', 'aspartic acid', 'cysteine',
-    'glutamine', 'glutamic acid', 'glycine', 'histidine', 'isoleucine',
+    'glutamic acid', 'glutamine', 'glycine', 'histidine', 'isoleucine',
     'leucine', 'lysine', 'methionine', 'phenylalanine', 'proline', 'serine',
     'threonine', 'tryptophan', 'tyrosine', 'valine'
 ]
@@ -114,6 +114,7 @@ aas_tuples = file_io.read_scales_db(AA_SCALE_AAINDEX_F)
 aaindex_scale_ids, aaindex_scale_descr, aaindex_scales = zip(*aas_tuples)
 aaindex_st_scales = [_standardized_scale(s) for s in aaindex_scales]
 
+
 # TODO index_id? descr?
 def get_aaindex_scale(index, ambiguous=True, standardized=True):
     '''
@@ -124,8 +125,9 @@ def get_aaindex_scale(index, ambiguous=True, standardized=True):
         scale = aaindex_st_scales[index].copy()
     else:
         scale = aaindex_scales[index].copy()
-    
+
     return _get_scale(scale, ambiguous)
+
 
 def get_georgiev_scale(index, ambiguous=True, standardized=True):
     '''
@@ -136,11 +138,13 @@ def get_georgiev_scale(index, ambiguous=True, standardized=True):
         scale = georgiev_st_scales[index].copy()
     else:
         scale = georgiev_scales[index].copy()
-    
+
     return _get_scale(scale, ambiguous)
+
 
 def get_georgiev_scales(ambiguous=True, standardized=True):
     return [get_georgiev_scale(i, ambiguous, standardized) for i in xrange(19)]
+
 
 def _get_scale(scale, ambiguous):
     '''
@@ -188,18 +192,19 @@ aa_subsets = sorted(aa_subset_dict.keys())
 
 aa_property_divisions = {
     'hydrophobicity': ['RKEDQN', 'GASTPHY', 'CLVIMFW'],
-    'normvdw': ['GASTPD', 'NVEQIL', 'MHKFRYW'],
+    'normvdw': ['GACSTPD', 'NVEQIL', 'MHKFRYW'],
     'polarity': ['LIFWCMVY', 'PATGS', 'HQRKNED'],
     'polarizability': ['GASDT', 'CPNVEQIL', 'KMHFRYW'],
-    'charge': ['KR', 'ANCQGHILMFPSTWYV','DE'],
+    'charge': ['KR', 'ANCQGHILMFPSTWYV', 'DE'],
     'ss': ['EALMQKRH', 'VIYCWFT', 'GNPSD'],
-    'sa': ['ALFCGIVW', 'PKQEND', 'MPSTHY']
+    'sa': ['ALFCGIVW', 'PKQEND', 'MRSTHY']
 }
+
 
 def property_division_mapping(property):
 
     default_letters = 'ABC'
-    clusters = pf_aa_divisions[property]
+    clusters = aa_property_divisions[property]
     assert(len(default_letters) == len(clusters))
 
     d = {}
@@ -546,10 +551,11 @@ def autocorrelation_mb(sequence, scale, lag):
     signal = numpy.array(seq_signal_raw(sequence, scale))
 
     # calculate autocorrelation
-    autocorr = sum(signal[:-lag] * signal[lag:]) 
+    autocorr = sum(signal[:-lag] * signal[lag:])
 
     # return normalized autocorrelation
     return autocorr / float(len(sequence) - lag)
+
 
 def autocorrelation_moran(sequence, scale, lag):
     '''
@@ -582,7 +588,7 @@ def autocorrelation_moran(sequence, scale, lag):
 
     # calculate autocorrelation
     autocorr = sum(signal[:-lag] * signal[lag:])
-    
+
     # normalize
     norm_autocorr = autocorr / float(len(sequence) - lag)
 
@@ -621,7 +627,7 @@ def autocorrelation_geary(sequence, scale, lag):
     # calculate average signal value
     avg_signal = numpy.mean(signal)
 
-    # 
+    #
     denom = sum(numpy.square(signal[:-lag] - signal[lag:]))
 
     norm_denom = denom / (2.0 * (len(sequence) - lag))
@@ -630,7 +636,7 @@ def autocorrelation_geary(sequence, scale, lag):
     enume = sum(numpy.square(signal - avg_signal))
 
     norm_enume = enume / (len(sequence) - 1.0)
-    
+
     if(norm_enume == 0):
         return 0.0  # TODO should this be zero???
     else:
@@ -638,30 +644,99 @@ def autocorrelation_geary(sequence, scale, lag):
 
 
 def property_ctd(seq, property):
+    '''
+    Based on the given property, the amino acid alphabet is subdivided into
+    three groups. The amino acid sequence (seq) is mapped to this three-letter
+    alphabet.
 
-    # NOT cluster alphabet must be ABC
+    The composition, transition, and distribution (ctd) of the mapped sequence
+    is calculated and returned.
+
+    property must be one of: 'hydrophobicity', 'normvdw', 'polarity',
+    'polarizability', 'charge', 'ss', 'sa'.
+
+    hyd
+    vdw
+    plr
+    plz
+    chr
+    ss
+    sa
+    '''
 
     # get mapping from amino acids to the three property clusters
     letter_mapping = property_division_mapping(property)
 
     # map aa protein sequence to property sequence (3-letter alphabet)
-    state_seq = [letter_mapping[l] for l in seq]
+    state_seq = ''.join([letter_mapping[l] for l in seq])
 
-    # composition features
+    # composition features (letter counts normalized by sequence length)
     c0, c1, c2 = seq_composition(state_seq, 'ABC')
 
-    # transition features
-    seq_length = float(len(seq))
-    t0 = (seq.count('AB') + seq.count('BA')) / seq_length
-    t1 = (seq.count('AC') + seq.count('CA')) / seq_length
-    t2 = (seq.count('BC') + seq.count('CB')) / seq_length
+    # transition features (transition counts normalized by total number of
+    # transitions)
+    # TODO some general transition count function?
+    seq_length = float(len(state_seq))
+    t0 = (state_seq.count('AB') + state_seq.count('BA')) / (seq_length - 1)
+    t1 = (state_seq.count('AC') + state_seq.count('CA')) / (seq_length - 1)
+    t2 = (state_seq.count('BC') + state_seq.count('CB')) / (seq_length - 1)
 
     # distribution
-    d0 = 0.0
-    d1 = 0.0
-    d2 = 0.0
+    fractions = [0.25, 0.5, 0.75, 1.0]
 
-    return (c0, c1, c2, t0, t1, t2, d0, d1, d2)
+    print state_seq
+
+    d0 = distribution(state_seq, 'A', fractions)
+    d1 = distribution(state_seq, 'B', fractions)
+    d2 = distribution(state_seq, 'C', fractions)
+
+    print d0
+    print d1
+    print d2
+
+    return (c0, c1, c2,
+            t0, t1, t2,
+            d0[0], d0[1], d0[2], d0[3], d0[4],
+            d1[0], d1[1], d1[2], d1[3], d1[4],
+            d2[0], d2[1], d2[2], d2[3], d2[4])
+
+
+def distribution(seq, letter, fractions=[0.25, 0.5, 0.75, 1.0]):
+    '''
+    This function returns at what fractions of the sequence, the given
+    fractions of the letter are reached.
+
+    >>> s = 'AABBABABABAABBAAAAAB'
+    >>> distribution(s, 'B')
+    [0.15, 0.2, 0.4, 0.65, 1.0]
+
+    TODO test grensgevallen
+    '''
+
+    # count how often letter occurs in seq
+    num_letter = seq.count(letter)
+
+    if(num_letter == 0):
+        return [0.0] * (len(fractions) + 1)
+
+    # get letter indices where fraction of the letters is reached
+    letter_positions = [max(1, int(round(f * num_letter))) for f in fractions]
+
+    seq_fractions = []
+    letter_count = 0
+    for index, l in enumerate(seq):
+        if(l == letter):
+            letter_count += 1
+            # the first occurance
+            if letter_count == 1:
+                seq_fractions.append((index + 1.0) / len(seq))
+            # the fraction occurences
+            if letter_count in letter_positions:
+                print letter_positions
+                for i in xrange(letter_positions.count(letter_count)):
+                    seq_fractions.append((index + 1.0) / len(seq))
+
+    return seq_fractions
 
 
 def state_subseq(seq, state_seq, state_letter):
@@ -708,6 +783,7 @@ def state_subseq_composition(seq, state_seq, seq_alph, state_alph):
                       seq_alph))
     return result
 
+
 def segmented_sequence(seq, num_segments):
     '''
     This methods chops seq in num_segments (about) equals sized segments and
@@ -718,7 +794,7 @@ def segmented_sequence(seq, num_segments):
     ['AAA', 'ABB', 'BBC', 'CCC']
     >>> segmented_sequence(s, 5)
     ['AA', 'AA', 'BB', 'BBC', 'CCC']
-    
+
     '''
 
     if(num_segments > len(seq)):
@@ -745,6 +821,7 @@ def segmented_sequence(seq, num_segments):
 
     return segments
 
+
 def aa_count(protein):
     '''
     This function returns the (unambiguous) amino acid count of the provided
@@ -767,6 +844,7 @@ def aa_composition(peptide, num_segments=1):
         segments = segmented_sequence(peptide, num_segments)
         comps = [seq_composition(s, aa_unambiguous_alph) for s in segments]
         return numpy.concatenate(comps)
+
 
 def ss_composition(protein_ss):
     '''
@@ -880,6 +958,7 @@ def convolution_filter(window=9, edge=0):
     Args:
         window (int): The width of the filter
         edge (float): The weight of the edges of the window [0.0, 1.0]
+        NOTO edge is now 0..100 (in percentage)
     Raises:
         ValueError: if the window is not an uneven number.
         ValueError: if the window is too small, smaller than 3.
@@ -888,7 +967,7 @@ def convolution_filter(window=9, edge=0):
     >>> convolution_filter()
     array([ 0.    ,  0.0625,  0.125 ,  0.1875,  0.25  ,  0.1875,  0.125 ,
             0.0625,  0.    ])
-    >>> convolution_filter(window=3, edge=0.333333333333)
+    >>> convolution_filter(window=3, edge=33.333333)
     array([ 0.2,  0.6,  0.2])
     '''
 
@@ -953,7 +1032,7 @@ def seq_signal(sequence, scale, window=9, edge=0):
 
     >>> s = 'AABBAA'
     >>> sc = {'A': -1.0, 'B': 1.0}
-    >>> seq_signal(s, sc, window=3, edge=1.0)
+    >>> seq_signal(s, sc, window=3, edge=100)
     array([-0.33333333,  0.33333333,  0.33333333, -0.33333333])
     '''
 
@@ -992,7 +1071,7 @@ def auc_seq_signal(sequence, scale, window=9, edge=0, threshold=10):
 
     >>> s = 'AAABBBCCCAAA'
     >>> sc = {'A': 0.0, 'B': 1.0, 'C': -1.0}
-    >>> auc_seq_signal(s, sc, window=3, edge=0.0, threshold=0.5)
+    >>> auc_seq_signal(s, sc, window=3, edge=0, threshold=5)
     (0.125, 0.125)
     '''
 
@@ -1193,11 +1272,13 @@ def impossible_single_mutation_aa_substitutions():
     return sorted(set(aa_substitutions()) -
                   set(possible_single_mutation_aa_substitutions()))
 
+
 def single_mutation_aa_substitution_dict():
     result = {}
     for fr, to in possible_single_mutation_aa_substitutions():
         result[fr] = result.setdefault(fr, '') + to
     return result
+
 
 def single_mutation_aa_substitution_stats():
     subs = single_mutation_aa_substitutions()
