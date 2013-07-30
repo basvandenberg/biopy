@@ -740,6 +740,31 @@ def write_dict(handle, d):
         handle.write('%s\t%s\n' % (key, str(d[key])))
 
 
+def read_settings_dict(f):
+    
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    settings_dict = {}
+
+    keys = [k.strip() for k in handle.readline().split(',')]
+    for key in keys:
+        line = handle.readline()
+        try:
+            settings_dict[key] = eval(line)
+        except(NameError):
+            settings_dict[key] = line.strip()
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+    return settings_dict
+
+
 # use eval instead of passing list of types???
 def read_tuple_list(f, types):
 
