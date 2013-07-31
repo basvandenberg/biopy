@@ -64,8 +64,8 @@ aa_ter_short = ['ter']
 aa_ter_name = ['terminal']
 
 # full alphabet
-aa_alph = aa_unambiguous_alph + aa_ambiguous_alph + aa_special_alph +\
-    aa_ter_alph
+aa_alph = aa_unambiguous_alph +\
+    aa_ambiguous_alph + aa_special_alph + aa_ter_alph
 aa_short = list(itertools.chain.from_iterable([
     aa_unambiguous_short, aa_ambiguous_short, aa_special_short, aa_ter_short
 ]))
@@ -201,9 +201,11 @@ aa_property_divisions = {
 }
 
 
-def property_division_mapping(property):
+def property_division_mapping(property, extra_letters=True):
 
     default_letters = 'ABC'
+    extra_letter = 'D'
+
     clusters = aa_property_divisions[property]
     assert(len(default_letters) == len(clusters))
 
@@ -212,7 +214,14 @@ def property_division_mapping(property):
         for aa in cluster:
             d[aa] = letter
 
-    assert(sorted(d.keys()) == sorted(aa_unambiguous_alph))
+    if(extra_letters):
+        for aa in aa_ambiguous_alph + aa_special_alph + aa_ter_alph:
+            d[aa] = extra_letter
+
+    if(extra_letters):
+        assert(sorted(d.keys()) == sorted(aa_alph))
+    else:
+        assert(sorted(d.keys()) == sorted(aa_unambiguous_aplh))
 
     return d
 
@@ -689,10 +698,6 @@ def property_ctd(seq, property):
     d0 = distribution(state_seq, 'A', fractions)
     d1 = distribution(state_seq, 'B', fractions)
     d2 = distribution(state_seq, 'C', fractions)
-
-    print d0
-    print d1
-    print d2
 
     return (c0, c1, c2,
             t0, t1, t2,
