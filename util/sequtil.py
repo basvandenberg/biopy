@@ -221,7 +221,7 @@ def property_division_mapping(property, extra_letters=True):
     if(extra_letters):
         assert(sorted(d.keys()) == sorted(aa_alph))
     else:
-        assert(sorted(d.keys()) == sorted(aa_unambiguous_aplh))
+        assert(sorted(d.keys()) == sorted(aa_unambiguous_alph))
 
     return d
 
@@ -1153,40 +1153,63 @@ def is_amino_acid_sequence(sequence):
     return set(sequence).issubset(set(aa_alph))
 
 
+def is_not_an_amino_acid_sequence(sequence):
+    return not is_amino_acid_sequence(sequence)
+
+
 def is_unambiguous_amino_acid_sequence(sequence):
     return set(sequence).issubset(set(aa_unambiguous_alph))
+
+
+def is_not_an_unambiguous_amino_acid_sequence(sequence):
+    return not is_unambiguous_amino_acid_sequence(sequence)
 
 
 def is_nucleotide_sequence(sequence):
     return set(sequence).issubset(set(nucleotide_alph))
 
 
+def is_not_a_nucleotide_sequence(sequence):
+    return not is_nucleotide_sequence(sequence)
+
+
 def is_unambiguous_nucleotide_sequence(sequence):
     return set(sequence).issubset(set(nucleotide_unambiguous_alph))
+
+
+def is_not_an_unambiguous_nucleotide_sequence(sequence):
+    return not is_unambiguous_nucleotide_sequence(sequence)
 
 
 def is_sec_struct_sequence(sequence):
     return set(sequence).issubset(set(ss_alph))
 
 
+def is_not_a_sec_struct_sequence(sequence):
+    return not is_sec_struct_sequence(sequence)
+
+
 def is_solv_access_sequence(sequence):
     return set(sequence).issubset(set(sa_alph))
+
+
+def is_not_a_solv_access_sequence(sequence):
+    return not is_solv_access_sequence(sequence)
 
 
 def probably_nucleotide(sequence):
     pass
 
+
 def is_empty(sequence):
     return len(sequence) == 0
-
-def is_not_empty(sequence):
-    return not is_empty(sequence)
 
 ###############################################################################
 #
 # Sequence properties TODO order and document this...
 #
 ###############################################################################
+
 
 def hamming_distance(s0, s1):
     '''
