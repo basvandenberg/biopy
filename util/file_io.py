@@ -38,7 +38,7 @@ def read_fasta(f, filter_ids=None):
                 print(line.strip())
                 raise(Exception, "Error in fasta file")
         else:
-            if(line.strip() == "" or line[0] == ">"):
+            if((line.strip() == "" or line[0] == ">") or line[0] == "#"):
                 if(filter_ids is None or seq_id in filter_ids):
                     yield (seq_id, seq_str)
                 seq_str = ""
