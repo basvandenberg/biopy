@@ -1179,6 +1179,9 @@ def probably_nucleotide(sequence):
 def is_empty(sequence):
     return len(sequence) == 0
 
+def is_not_empty(sequence):
+    return not is_empty(sequence)
+
 ###############################################################################
 #
 # Sequence properties TODO order and document this...
