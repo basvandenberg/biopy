@@ -22,35 +22,37 @@ def read_fasta(f, filter_ids=None):
         handle = open(f, 'r')
 
     # initialize sequence id and string to an empty string
-    seq_id = ""
-    seq_str = ""
+    seq_id = ''
+    seq_str = ''
 
     # iterate over each line in the fasta file
     for line in handle:
 
-        if(seq_id == "" and seq_str == ""):
+        if(seq_id == '' and seq_str == ''):
             if(line[0] == ">"):
                 seq_id = line.split()[0][1:]
+                if(seq_id == ''):
+                    raise Exception('FASTA file error: Empty id encountered.')
             elif(line[0] == '#'):
                 pass
             elif(line.strip()):
                 # non-empty line...
-                print(line.strip())
-                raise(Exception, "Error in fasta file")
+                #print(line.strip())
+                raise Exception('Error in FASTA file.')
         else:
-            if((line.strip() == "" or line[0] == ">") or line[0] == "#"):
+            if((line.strip() == '' or line[0] == '>') or line[0] == '#'):
                 if(filter_ids is None or seq_id in filter_ids):
                     yield (seq_id, seq_str)
-                seq_str = ""
-                if(line[0] == ">"):
+                seq_str = ''
+                if(line[0] == '>'):
                     seq_id = line.split()[0][1:]
                 else:
-                    seq_id = ""
+                    seq_id = ''
             else:
                 seq_str += line.strip()
 
     # return the last sequence (not if the file was empty)
-    if not(seq_id == ""):
+    if not(seq_id == ''):
         if(filter_ids is None or seq_id in filter_ids):
             yield (seq_id, seq_str)
 
