@@ -1176,6 +1176,8 @@ def is_solv_access_sequence(sequence):
 def probably_nucleotide(sequence):
     pass
 
+def is_empty(sequence):
+    return len(sequence) == 0
 
 ###############################################################################
 #
