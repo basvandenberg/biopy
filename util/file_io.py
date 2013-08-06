@@ -235,8 +235,8 @@ def write_pfam(f, pfam_data):
     for uni, pfam in pfam_data:
         handle.write('>%s\n' % (uni))
         for annotation in pfam:
-            handle.write('%s\n' % (annotation.single_line_str()))
-            return '%i\t%i\t%s\t%s\t%s\t%.1f\t%e\t%s\t%s\n' % (annotation)
+            handle.write('%i\t%i\t%s\t%s\t%s\t%.1f\t%e\t%s\t%s\n' %
+                         (annotation))
         handle.write('\n')
         handle.flush()
 
