@@ -949,40 +949,44 @@ def read_aa_matrix_db(f):
     mat_id = None
     mat_descr = None
     aa_matrix = {}
-    letters = None
+    row_letters = None
+    col_letters = None
 
     for line in handle:
+
         tokens = line.split()
 
         if(len(tokens) > 0):
 
             if(tokens[0] == '//'):
                 #append new scale
-                assert(len(aa_matrix) == 400)
                 matrices.append((mat_id, mat_descr, aa_matrix))
                 # reset variables for next scale
                 mat_id = None
                 mat_descr = None
                 aa_matrix = {}
-                letters = None
+                row_letters = None
+                col_letters = None
             elif(tokens[0] == 'H'):
                 mat_id = tokens[1]
             elif(tokens[0] == 'D'):
                 mat_descr = ' '.join(tokens[1:])
             elif(tokens[0] == 'M'):
                 row_letters = tokens[3][:-1]
-                col_letters = tokens[6]
-                assert(row_letters == col_letters)
-                letters = row_letters
+                col_letters = tokens[-1]
                 row_index = 0
 
             # reading the scale...
-            elif not(letters is None):
-                row_aa = letters[row_index]
+            elif not(row_letters is None):
+                row_aa = row_letters[row_index]
                 for col_index, token in enumerate(tokens):
-                    col_aa = letters[col_index]
-                    aa_matrix[row_aa + col_aa] = float(token)
-                    aa_matrix[col_aa + row_aa] = float(token)
+                    col_aa = col_letters[col_index]
+                    if(token == '-'):
+                        aa_matrix[row_aa + col_aa] = -1
+                        aa_matrix[col_aa + row_aa] = -1
+                    else:    
+                        aa_matrix[row_aa + col_aa] = float(token)
+                        aa_matrix[col_aa + row_aa] = float(token)
                 row_index += 1
             else:
                 pass

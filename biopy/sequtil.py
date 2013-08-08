@@ -18,6 +18,8 @@ AA_SCALE_DIR = os.path.join(DATA_DIR, 'amino_acid_scales')
 AA_SCALE_DB_F = os.path.join(AA_SCALE_DIR, 'aascale1')
 AA_SCALE_GEORGIEV_F = os.path.join(AA_SCALE_DIR, 'georgiev.txt')
 AA_SCALE_AAINDEX_F = os.path.join(AA_SCALE_DIR, 'aaindex1')
+AA_MATRIX_DIR = os.path.join(DATA_DIR, 'amino_acid_matrices')
+AA_MATRIX_AAINDEX_F = os.path.join(AA_MATRIX_DIR, 'aaindex2')
 
 # TODO add amino acid distance matrix files
 
@@ -161,6 +163,18 @@ def _get_non_aa_letter_dict():
     '''
     other_letters = aa_ambiguous_alph + aa_special_alph + aa_ter_alph
     return dict(zip(other_letters, len(other_letters) * [0.0]))
+
+
+###############################################################################
+#
+# AMINO ACID DISTANCE MATRICES
+#
+###############################################################################
+
+
+aa_matrix_ids, aa_matrix_descr, aa_matrices =\
+    zip(*file_io.read_aa_matrix_db(AA_MATRIX_AAINDEX_F))
+
 
 ###############################################################################
 #
