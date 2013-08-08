@@ -459,16 +459,111 @@ def translate(orf):
     return ''.join([codon_table[orf[i:i+3]] for i in xrange(0, len(orf), 3)])
 
 
-###############################################################################
-#
-# GLOBAL SEQUENCE FEATURES
-#
-###############################################################################
-
-
-def seq_count(seq, alph):
+def segment(seq, num_segments):
     '''
-    This function counts letter occurance in seq for each letter in alph.
+    This methods chops seq in num_segments (about) equals sized segments and
+    returns the list of sequence segments.
+
+    >>> s = 'AAAABBBBCCCC'
+    >>> segment(s, 4)
+    ['AAA', 'ABB', 'BBC', 'CCC']
+    >>> segment(s, 5)
+    ['AA', 'AA', 'BB', 'BBC', 'CCC']
+
+    '''
+
+    if(num_segments > len(seq)):
+        raise ValueError('Number of segments must be smaller than seq length.')
+
+    if(num_segments < 0):
+        raise ValueError('Number of segments must be a positive integer.')
+
+    stepsize = len(seq) / num_segments
+    rest = len(seq) % num_segments
+
+    chop_indices = range(0, len(seq), stepsize)
+
+    add_rest = [0] * (num_segments - (rest - 1))
+    add_rest.extend(range(1, rest + 1))
+
+    chop_indices = [sum(i) for i in zip(chop_indices, add_rest)]
+    if(rest == 0):
+        chop_indices.append(len(seq))
+
+    segments = []
+    for i in range(len(chop_indices) - 1):
+        segments.append(seq[chop_indices[i]:chop_indices[i + 1]])
+
+    return segments
+
+
+###############################################################################
+#
+# HELPER FUNCTIONS FOR SEQUENCE FEATURE CALCULATION
+#
+###############################################################################
+
+
+def ordered_alph_pairs(alph):
+    '''
+    This function returns all possible ordered letter pairs for the provided
+    alphabet alph.
+
+    For the intended use, alph should be a non-empty string without duplicate
+    characters.
+
+    Args:
+        alph (str): The letter alphabet
+
+    Returns:
+        [str] List with length-2 strings.
+
+    >>> ordered_alph_pairs('AB')
+    ['AA', 'AB', 'BA', 'BB']
+    '''
+    return [''.join((a, b)) for a in alph for b in alph]
+
+
+def ordered_seq_pairs(seq, distance):
+    '''
+    This function returns (sequentially ordered) letter pairs from seq that
+    occur at the given distance from each other.
+
+    The distance should be an integer larger then 0.
+
+    An empty list will be returned if distance is equal to or larger than the
+    sequence length.
+
+    Args:
+        seq (str): The sequence of which the pairs are returned
+        distance (int): distance between the letter pairs
+    Returns:
+        [(str, str)] List of tuples, each tuple containing two letters of one
+                     pair. The lengt of the list is max(0, len(seq) - 1).
+
+    >>> ordered_seq_pairs('ABCDE', 1)
+    ['AB', 'BC', 'CD', 'DE']
+    >>> ordered_seq_pairs('ABCDE', 3)
+    ['AD', 'BE']
+    >>> ordered_seq_pairs('ABCDE', 5)
+    []
+    '''
+    if(distance <= 0):
+        raise ValueError('Distance should be larger than 0.')
+
+    return [''.join(t) for t in zip(seq[:-distance], seq[distance:])]
+
+
+###############################################################################
+#
+# SEQUENCE FEATURE CALCULATION FUNCTIONS
+#
+###############################################################################
+
+
+def letter_count(seq, alph):
+    '''
+    This function counts letter occurances in seq for each letter in alph.
 
     Args:
         seq (str): The sequence of which the letters will be counted.
@@ -477,17 +572,42 @@ def seq_count(seq, alph):
     Returns:
         numpy.array List with letter counts in the order of alph.
 
-    >>> seq_count('AABBCBBACB', 'ABC')
+    >>> letter_count('AABBCBBACB', 'ABC')
     array([3, 5, 2])
-    >>> seq_count('', 'ABC')
+    >>> letter_count('', 'ABC')
     array([0, 0, 0])
-    >>> seq_count('ABC', '')
+    >>> letter_count('ABC', '')
     array([], dtype=int64)
     '''
     return numpy.array([seq.count(l) for l in alph], dtype=int)
 
 
-def seq_composition(seq, alph):
+def diletter_count(seq, alph, distance):
+    '''
+    Returns pair counts that occur at the given distance in seq.
+
+    >>> diletter_count('ABBBA', 'AB', 1)
+    array([0, 1, 1, 2])
+    >>> diletter_count('ABBBA', 'AB', 2)
+    array([0, 1, 1, 1])
+    '''
+
+    # dictionory to store ordered pair counts
+    pairs = ordered_alph_pairs(alph)
+    pair_counts = dict(zip(pairs, len(pairs) * [0]))
+
+    # count pairs while walking over the sequence
+    for seq_pair in ordered_seq_pairs(seq, distance):
+        pair_counts[seq_pair] += 1
+
+    # TODO time difference between the two
+    #return numpy.array([ordered_seq_pairs.count(p) for p in pairs],
+    #                   dtype=int)
+
+    return numpy.array([pair_counts[p] for p in pairs], dtype=int)
+
+
+def letter_composition(seq, alph):
     '''
     This function returns the letter composition of seq for the letters in
     alph.
@@ -503,22 +623,38 @@ def seq_composition(seq, alph):
     list of floats adds to one. Otherwise the sum of the numbers is between
     0.0 and 1.0
 
-    >>> seq_composition('AABBCBBACB', 'ABC')
+    >>> letter_composition('AABBCBBACB', 'ABC')
     array([ 0.3,  0.5,  0.2])
-    >>> sum(seq_composition('AABBCBBACB', 'ABC'))
+    >>> sum(letter_composition('AABBCBBACB', 'ABC'))
     1.0
-    >>> seq_composition('AABBCBBACB', 'AB')
+    >>> letter_composition('AABBCBBACB', 'AB')
     array([ 0.3,  0.5])
-    >>> seq_composition('AABBCBBACB', 'AD')
+    >>> letter_composition('AABBCBBACB', 'AD')
     array([ 0.3,  0. ])
-    >>> seq_composition('AAAAAAAAAA', 'A')
+    >>> letter_composition('AAAAAAAAAA', 'A')
     array([ 1.])
-    >>> seq_composition('AAAAAAAAAA', '')
+    >>> letter_composition('AAAAAAAAAA', '')
     array([], dtype=float64)
+    '''
+
+    if(len(seq) == 0):
+        raise ValueError('Cannot calculate composition of empty sequence.')
+
+    return letter_count(seq, alph) / float(len(seq))
+
+
+def diletter_composition(seq, alph, dist):
+    '''
+    This function returns the ordered pair compositions of pairs that occur
+    at distance dist in seqeunce seq.
+
+    >>> diletter_composition('ABBBA', 'AB', 1)
+    array([ 0.  ,  0.25,  0.25,  0.5 ])
     '''
     if(len(seq) == 0):
         raise ValueError('Cannot calculate composition of empty sequence.')
-    return seq_count(seq, alph) / float(len(seq))
+
+    return diletter_count(seq, alph, dist) / float(len(seq) - dist)
 
 
 def autocorrelation(ac_type, sequence, scale, lag):
@@ -682,7 +818,7 @@ def property_ctd(seq, property):
     state_seq = ''.join([letter_mapping[l] for l in seq])
 
     # composition features (letter counts normalized by sequence length)
-    c0, c1, c2 = seq_composition(state_seq, 'ABC')
+    c0, c1, c2 = letter_composition(state_seq, 'ABC')
 
     # transition features (transition counts normalized by total number of
     # transitions)
@@ -746,21 +882,20 @@ def distribution(seq, letter, fractions=[0.25, 0.5, 0.75, 1.0]):
     return seq_fractions
 
 
-def seq_order_coupling_number(seq, d, aa_dist_matrix):
+def seq_order_coupling_number(seq, d, aa_dists):
     '''
     This function returns the d-th rank sequence order coupling number for
     sequence seq using aa_dist_matrix as amino acid distance function.
 
-    >>> dist_m = {('A', 'A'): 0.3, ('A', 'B'): 0.6, ('B', 'A'): 0.9, ('B', 'B'): 0.5}
+    >>> dist_m = {'AA': 0.3, 'AB': 0.6, 'BA': 0.9, 'BB': 0.5}
     >>> d = 2
     >>> s = 'AABABBAAAB'
     >>> so = seq_order_coupling_number(s, d, dist_m)
     >>> round(so, 2)
     3.13
-    
+
     '''
-    return sum([math.pow(aa_dist_matrix[rr], 2) 
-                for rr in zip(seq[:-d], seq[d:])])
+    return sum([math.pow(aa_dists[p], 2) for p in ordered_seq_pairs(seq, d)])
 
 
 def state_subseq(seq, state_seq, state_letter):
@@ -783,8 +918,7 @@ def state_subseq(seq, state_seq, state_letter):
     if not(len(seq) == len(state_seq)):
         raise ValueError('The state_seq should have the same length as seq.')
 
-    return ''.join([l if state_seq[i] == state_letter else ''
-                   for i, l in enumerate(seq)])
+    return ''.join([i for i, j in zip(seq, state_seq) if j == state_letter])
 
 
 def state_subseq_composition(seq, state_seq, seq_alph, state_alph):
@@ -803,125 +937,9 @@ def state_subseq_composition(seq, state_seq, seq_alph, state_alph):
     result = []
     # TODO is extend correct??? Now all composition are added to the same list
     for l in state_alph:
-        result.extend(seq_composition(state_subseq(seq, state_seq, l),
-                      seq_alph))
+        comp = letter_composition(state_subseq(seq, state_seq, l), seq_alph)
+        result.extend(comp)
     return result
-
-
-def segmented_sequence(seq, num_segments):
-    '''
-    This methods chops seq in num_segments (about) equals sized segments and
-    returns the list of sequence segments.
-
-    >>> s = 'AAAABBBBCCCC'
-    >>> segmented_sequence(s, 4)
-    ['AAA', 'ABB', 'BBC', 'CCC']
-    >>> segmented_sequence(s, 5)
-    ['AA', 'AA', 'BB', 'BBC', 'CCC']
-
-    '''
-
-    if(num_segments > len(seq)):
-        raise ValueError('Number of segments must be smaller than seq length.')
-
-    if(num_segments < 0):
-        raise ValueError('Number of segments must be a positive integer.')
-
-    stepsize = len(seq) / num_segments
-    rest = len(seq) % num_segments
-
-    chop_indices = range(0, len(seq), stepsize)
-
-    add_rest = [0] * (num_segments - (rest - 1))
-    add_rest.extend(range(1, rest + 1))
-
-    chop_indices = [sum(i) for i in zip(chop_indices, add_rest)]
-    if(rest == 0):
-        chop_indices.append(len(seq))
-
-    segments = []
-    for i in range(len(chop_indices) - 1):
-        segments.append(seq[chop_indices[i]:chop_indices[i + 1]])
-
-    return segments
-
-
-def aa_count(protein):
-    '''
-    This function returns the (unambiguous) amino acid count of the provided
-    protein sequence.
-    '''
-    return seq_count(protein, aa_unambiguous_alph)
-
-
-def aa_composition(peptide, num_segments=1):
-    '''
-    This function returns the amino acid composition of the provided peptide
-    sequence. Only unambiguous amino acids are considered, therefore the
-    result does not need to sum to 1.0.
-    '''
-    if(num_segments < 1):
-        raise ValueError('Number of segments should be positive integer')
-    if(num_segments == 1):
-        return seq_composition(peptide, aa_unambiguous_alph)
-    else:
-        segments = segmented_sequence(peptide, num_segments)
-        comps = [seq_composition(s, aa_unambiguous_alph) for s in segments]
-        return numpy.concatenate(comps)
-
-
-# TODO remove, just use seq_composition...
-def ss_composition(protein_ss, num_segments=1):
-    '''
-    This function returns the secondary structure composition of the provided
-    protein secondary structure sequence.
-    '''
-    return seq_composition(protein_ss, ss_alph)
-def sa_composition(protein_sa):
-    '''
-    This function returns the solvent accessibility compositions of the
-    provided protein solvent accessibility sequence.
-    '''
-    return seq_composition(protein_sa, sa_alph)
-
-# TODO remove, just use state_subseq_composition...
-def ss_aa_composition(protein, ss):
-    '''
-    This function returns the amino acid composition per (combined) secondairy
-    structure region.
-
-    Args:
-        protein (str): The protein amino acid sequence.
-        ss (str): The corresponding secondary structure sequence.
-    Raises:
-        TODO
-
-    The sequence parts that are in one type of secondairy structure, i.e. in a
-    helix, are combined into one string and the amino acid composition of this
-    sequence is returned. This is also done for the strand and random coil
-    regions.
-    '''
-    return state_subseq_composition(protein, ss, aa_unambiguous_alph, ss_alph)
-def sa_aa_composition(protein, sa):
-    '''
-    This function returns the amino acid composition of both the buried and the
-    exposed parts of the protein.
-
-    Args:
-        protein (str): The protein amino acid sequence.
-        sa (str): The solvent accessibility sequence.
-
-    The buried and exposed parts are combined into separate sequences and the
-    amino acid composition of both of these sequences is returned.
-    '''
-    return state_subseq_composition(protein, sa, aa_unambiguous_alph, sa_alph)
-
-'''
-def aa_cluster_count(protein):
-    counts = dict(zip(aa_unambiguous_alph, aa_count(protein)))
-    return numpy.array([sum([comp[l] for l in aa_subset_dict[subset]])
-            for subset in aa_subsets])
-'''
 
 
 # TODO add cluster(s) as parameter... instead of aa_subsets
@@ -930,7 +948,9 @@ def aa_cluster_composition(protein):
     This function returns the protein sequence composition of the different
     defined amino acid clusters.
     '''
-    comp = dict(zip(aa_unambiguous_alph, aa_composition(protein)))
+    comp = dict(zip(aa_unambiguous_alph,
+                    letter_composition(protein, aa_unambiguous_alph)))
+
     return numpy.array([sum([comp[l] for l in aa_subset_dict[subset]])
                        for subset in aa_subsets])
 
@@ -1121,7 +1141,21 @@ def codon_count(orf):
 
     Args:
         orf (str): Open reading frame (nucleotide) sequence
+
+    >>> cc = codon_count('TTTTTCTTTTTC')
+    >>> cc[0]
+    2
+    >>> cc[1]
+    2
+    >>> all([c == 0 for c in cc[2:]])
+    True
     '''
+
+    if not(len(orf) % 3 == 0):
+        raise ValueError('ORF sequence length is not a multiple of 3.')
+    if not(is_nucleotide_sequence(orf)):
+        raise ValueError('ORF sequence is not a nucleotide sequence.')
+
     wseq = window_seq(orf, 3, overlapping=False)
     return numpy.array([wseq.count(c) for c in codons_unambiguous])
 
@@ -1132,20 +1166,36 @@ def codon_composition(orf):
 
     Args:
         orf (str): Open reading frame (nucleotide) sequence
+
+    >>> cc = codon_composition('TTTTTCTTTTTC')
+    >>> cc[0]
+    0.5
+    >>> cc[1]
+    0.5
+    >>> all([c == 0.0 for c in cc[2:]])
+    True
     '''
-    return codon_count(orf) / float(len(orf))
+    return codon_count(orf) / float(len(orf) / 3)
 
 
 def codon_usage(orf):
     '''
 
+    >>> cu = codon_usage('TTTTTTTTTTTC')
+    >>> cu[0]
+    0.75
+    >>> cu[1]
+    0.25
+    >>> all([c == 0.0 for c in cu[2:]])
+    True
     '''
 
     # TODO leave out codons that encode for only one amino acid?
     # What about start and stop codon?
 
     # count amino acids for translated orf sequence (dict: aa --> count)
-    aa_c_dict = dict(zip(aa_unambiguous_alph, aa_count(translate(orf))))
+    aa_c_dict = dict(zip(aa_unambiguous_alph,
+                         letter_count(translate(orf), aa_unambiguous_alph)))
 
     # turn into list with amino acid count per codon
     # change 0 to 1, to prevent / 0 (answer will still always be 0 (0/1))
@@ -1220,6 +1270,7 @@ def probably_nucleotide(sequence):
 
 def is_empty(sequence):
     return len(sequence) == 0
+
 
 ###############################################################################
 #
