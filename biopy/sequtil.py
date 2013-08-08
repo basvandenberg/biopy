@@ -472,27 +472,30 @@ def segment(seq, num_segments):
 
     '''
 
-    if(num_segments > len(seq)):
-        raise ValueError('Number of segments must be smaller than seq length.')
-
-    if(num_segments < 0):
+    if(num_segments <= 0):
         raise ValueError('Number of segments must be a positive integer.')
 
     stepsize = len(seq) / num_segments
     rest = len(seq) % num_segments
 
-    chop_indices = range(0, len(seq), stepsize)
+    # number of segments larger than sequence...
+    if(stepsize == 0):
+        segments = list(seq)
+        segments.extend([''] * (num_segments - len(seq)))
 
-    add_rest = [0] * (num_segments - (rest - 1))
-    add_rest.extend(range(1, rest + 1))
+    else:
+        chop_indices = range(0, len(seq), stepsize)
 
-    chop_indices = [sum(i) for i in zip(chop_indices, add_rest)]
-    if(rest == 0):
-        chop_indices.append(len(seq))
+        add_rest = [0] * (num_segments - (rest - 1))
+        add_rest.extend(range(1, rest + 1))
 
-    segments = []
-    for i in range(len(chop_indices) - 1):
-        segments.append(seq[chop_indices[i]:chop_indices[i + 1]])
+        chop_indices = [sum(i) for i in zip(chop_indices, add_rest)]
+        if(rest == 0):
+            chop_indices.append(len(seq))
+
+        segments = []
+        for i in range(len(chop_indices) - 1):
+            segments.append(seq[chop_indices[i]:chop_indices[i + 1]])
 
     return segments
 
