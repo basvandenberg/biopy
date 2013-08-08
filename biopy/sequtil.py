@@ -2,8 +2,9 @@ import os
 import sys
 import itertools
 import numpy
+import math
 
-from util import file_io
+from biopy import file_io
 
 ###############################################################################
 # Paths to data files
@@ -18,6 +19,8 @@ AA_SCALE_DB_F = os.path.join(AA_SCALE_DIR, 'aascale1')
 AA_SCALE_GEORGIEV_F = os.path.join(AA_SCALE_DIR, 'georgiev.txt')
 AA_SCALE_AAINDEX_F = os.path.join(AA_SCALE_DIR, 'aaindex1')
 
+# TODO add amino acid distance matrix files
+
 ###############################################################################
 #
 # AMINO ACID ALPHABET
@@ -30,7 +33,6 @@ AA_SCALE_AAINDEX_F = os.path.join(AA_SCALE_DIR, 'aaindex1')
 # IMPORTANT: order of the alphabet letters is important! do not change this.
 #
 ###############################################################################
-
 
 # unambiguos amino acid alphabet (alphabitic order full names)
 aa_unambiguous_alph = 'ARNDCEQGHILKMFPSTWYV'
@@ -227,7 +229,7 @@ def property_division_mapping(property, extra_letters=True):
 
 ###############################################################################
 #
-# AMINO ACID ANNOTATION SEQUENCES
+# AMINO ACID STATE SEQUENCES
 #
 ###############################################################################
 
@@ -737,11 +739,28 @@ def distribution(seq, letter, fractions=[0.25, 0.5, 0.75, 1.0]):
                 seq_fractions.append((index + 1.0) / len(seq))
             # the fraction occurences
             if letter_count in letter_positions:
-                print letter_positions
+
                 for i in xrange(letter_positions.count(letter_count)):
                     seq_fractions.append((index + 1.0) / len(seq))
 
     return seq_fractions
+
+
+def seq_order_coupling_number(seq, d, aa_dist_matrix):
+    '''
+    This function returns the d-th rank sequence order coupling number for
+    sequence seq using aa_dist_matrix as amino acid distance function.
+
+    >>> dist_m = {('A', 'A'): 0.3, ('A', 'B'): 0.6, ('B', 'A'): 0.9, ('B', 'B'): 0.5}
+    >>> d = 2
+    >>> s = 'AABABBAAAB'
+    >>> so = seq_order_coupling_number(s, d, dist_m)
+    >>> round(so, 2)
+    3.13
+    
+    '''
+    return sum([math.pow(aa_dist_matrix[rr], 2) 
+                for rr in zip(seq[:-d], seq[d:])])
 
 
 def state_subseq(seq, state_seq, state_letter):
@@ -851,14 +870,13 @@ def aa_composition(peptide, num_segments=1):
         return numpy.concatenate(comps)
 
 
-def ss_composition(protein_ss):
+# TODO remove, just use seq_composition...
+def ss_composition(protein_ss, num_segments=1):
     '''
     This function returns the secondary structure composition of the provided
     protein secondary structure sequence.
     '''
     return seq_composition(protein_ss, ss_alph)
-
-
 def sa_composition(protein_sa):
     '''
     This function returns the solvent accessibility compositions of the
@@ -866,7 +884,7 @@ def sa_composition(protein_sa):
     '''
     return seq_composition(protein_sa, sa_alph)
 
-
+# TODO remove, just use state_subseq_composition...
 def ss_aa_composition(protein, ss):
     '''
     This function returns the amino acid composition per (combined) secondairy
@@ -884,8 +902,6 @@ def ss_aa_composition(protein, ss):
     regions.
     '''
     return state_subseq_composition(protein, ss, aa_unambiguous_alph, ss_alph)
-
-
 def sa_aa_composition(protein, sa):
     '''
     This function returns the amino acid composition of both the buried and the
@@ -908,6 +924,7 @@ def aa_cluster_count(protein):
 '''
 
 
+# TODO add cluster(s) as parameter... instead of aa_subsets
 def aa_cluster_composition(protein):
     '''
     This function returns the protein sequence composition of the different
