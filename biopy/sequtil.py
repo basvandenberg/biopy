@@ -930,7 +930,7 @@ def quasi_sequence_order_descriptors(seq, max_rank, aa_dists):
     type1_qsod = aacomp / denominator
 
     # type-2 quasi-sequence-order
-    type2_qsod = numpy.array(soncs) / denominator    
+    type2_qsod = numpy.array(socns) / denominator
 
     return numpy.concatenate(type1_qsod, type2_qsod)
 
