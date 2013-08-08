@@ -885,9 +885,9 @@ def distribution(seq, letter, fractions=[0.25, 0.5, 0.75, 1.0]):
     return seq_fractions
 
 
-def seq_order_coupling_number(seq, d, aa_dists):
+def seq_order_coupling_number(seq, r, aa_dists):
     '''
-    This function returns the d-th rank sequence order coupling number for
+    This function returns the r-th rank sequence order coupling number for
     sequence seq using aa_dist_matrix as amino acid distance function.
 
     >>> dist_m = {'AA': 0.3, 'AB': 0.6, 'BA': 0.9, 'BB': 0.5}
@@ -898,7 +898,41 @@ def seq_order_coupling_number(seq, d, aa_dists):
     3.13
 
     '''
-    return sum([math.pow(aa_dists[p], 2) for p in ordered_seq_pairs(seq, d)])
+    return sum([math.pow(aa_dists[p], 2) for p in ordered_seq_pairs(seq, r)])
+
+
+def quasi_sequence_order_descriptors(seq, max_rank, aa_dists):
+    '''
+    This
+
+    TODO parse aa_dist using sequtil...
+
+    Number returned values is max_rank + 20
+    '''
+
+    if(max_rank <= 0):
+        raise ValueError('The max rank should be larger than 0.')
+
+    # sequence order coupling numbers 1 ... max_rank
+    socns = [seq_order_coupling_number(seq, r, aa_dists)
+             for r in xrange(1, max_rank + 1)]
+
+    # denominator terms
+    sum_aa_freqs = 1.0
+    w = 0.1
+    sum_socns = sum(socns)
+
+    # denominator
+    denominator = sum_aa_freqs + w * sum_socns
+
+    # type-1 quasi-sequence-order (amino acid composition / denominator)
+    aacomp = letter_composition(seq, aa_unambiguous_alph)
+    type1_qsod = aacomp / denominator
+
+    # type-2 quasi-sequence-order
+    type2_qsod = numpy.array(soncs) / denominator    
+
+    return numpy.concatenate(type1_qsod, type2_qsod)
 
 
 def state_subseq(seq, state_seq, state_letter):
