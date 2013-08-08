@@ -158,14 +158,17 @@ def write_flex(f, flex_data):
         flex_strings.append(','.join(['%.3f' % (fl) for fl in flex]))
     write_fasta(f, zip(ids, flex_strings))
 
+
 def read_interaction_counts(f):
     data = read_tuple_list(f, (str, int, int, int, int, int, int))
     return [(item[0], item[1:]) for item in data]
+
 
 def write_interaction_counts(f, interaction_counts_data):
     tuples = [(i[0], i[1][0], i[1][1], i[1][2], i[1][3], i[1][4], i[1][5])
               for i in interaction_counts_data]
     write_tuple_list(f, tuples)
+
 
 def read_pfam(f):
 
@@ -272,7 +275,7 @@ def read_mutation(f):
 
         if(pdb_id == 'None'):
             pdb_id = None
-        
+
         tuples.append((uni_id, pos, fr, to, label, pep, pep_i, codons,
                        fr_codon, to_codons, pdb_id, pdb_resnum))
 
@@ -286,6 +289,7 @@ def read_mutation(f):
 def write_mutation(f, mutations):
     assert(all([len(m) == 12 for m in mutations]))
     write_tuple_list(f, mutations)
+
 
 def read_mut(f):
 
@@ -311,9 +315,11 @@ def read_mut(f):
 
     return tuples
 
+
 def write_mut(f, mutations):
     assert(all([len(m) == 4 for m in mutations]))
     write_tuple_list(f, mutations)
+
 
 def read_pdb_dir(pdb_fs, pdb_dir):
     '''
@@ -475,7 +481,7 @@ def read_residue_rank(f):
 
             # store ass tuple and add to result
             result.append((ali_pos, seq_pos, aa, coverage, var_count,
-                    var_letters, rvet_score))
+                           var_letters, rvet_score))
 
     if not(type(f) == file):
         handle.close()
@@ -526,6 +532,7 @@ def write_msa(f, msa):
     assert(all([type(m) == str for m in msa]))
     assert(all([len(msa[0]) == len(m) for m in msa]))
     write_ids(f, msa)
+
 
 def read_classification_result(f, score=None):
 
@@ -693,7 +700,7 @@ def write_ids(f, ids):
 
 
 def read_names(f):
-    
+
     # open file if path is provided instead of file
     if(type(f) == file):
         handle = f
@@ -743,7 +750,7 @@ def write_dict(handle, d):
 
 
 def read_settings_dict(f):
-    
+
     # open file if path is provided instead of file
     if(type(f) == file):
         handle = f
@@ -874,7 +881,7 @@ def read_scales(f):
 
 
 def read_scales_db(f):
-    
+
     # open file if path is provided instead of file
     if(type(f) == file):
         handle = f
@@ -896,7 +903,7 @@ def read_scales_db(f):
             if(tokens[0] == '//'):
                 #append new scale
                 assert(len(letters) == len(scale))
-                scales.append((scale_id, scale_descr, 
+                scales.append((scale_id, scale_descr,
                                dict(zip(letters, scale))))
                 # reset variables for next scale
                 scale_id = None
@@ -927,3 +934,61 @@ def read_scales_db(f):
         handle.close()
 
     return scales
+
+
+def read_aa_matrix_db(f):
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    matrices = []
+
+    mat_id = None
+    mat_descr = None
+    aa_matrix = {}
+    letters = None
+
+    for line in handle:
+        tokens = line.split()
+
+        if(len(tokens) > 0):
+
+            if(tokens[0] == '//'):
+                #append new scale
+                assert(len(aa_matrix) == 400)
+                matrices.append((mat_id, mat_descr, aa_matrix))
+                # reset variables for next scale
+                mat_id = None
+                mat_descr = None
+                aa_matrix = {}
+                letters = None
+            elif(tokens[0] == 'H'):
+                mat_id = tokens[1]
+            elif(tokens[0] == 'D'):
+                mat_descr = ' '.join(tokens[1:])
+            elif(tokens[0] == 'M'):
+                row_letters = tokens[3][:-1]
+                col_letters = tokens[6]
+                assert(row_letters == col_letters)
+                letters = row_letters
+                row_index = 0
+
+            # reading the scale...
+            elif not(letters is None):
+                row_aa = letters[row_index]
+                for col_index, token in enumerate(tokens):
+                    col_aa = letters[col_index]
+                    aa_matrix[row_aa + col_aa] = float(token)
+                    aa_matrix[col_aa + row_aa] = float(token)
+                row_index += 1
+            else:
+                pass
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+    return matrices
