@@ -863,11 +863,17 @@ def read_scales(f):
     scales = []
 
     first = True
+    second = False
     for line in handle:
         if(first):
             letters = line.split(',')
             letters = [l.strip() for l in letters]
             first = False
+            second = True
+        elif(second):
+            scale_ids = line.split(',')
+            scale_ids = [s.strip() for s in scale_ids]
+            second = False
         else:
             scale = [float(v) for v in line.split(',')]
             assert(len(scale) == len(letters))
@@ -877,7 +883,9 @@ def read_scales(f):
     if not(type(f) == file):
         handle.close()
 
-    return scales
+    assert(len(scales) == len(scale_ids))
+
+    return (scales, scale_ids)
 
 
 def read_scales_db(f):
@@ -936,6 +944,34 @@ def read_scales_db(f):
     return scales
 
 
+def read_aa_matrix(f):
+
+    # open file if path is provided instead of file
+    if(type(f) == file):
+        handle = f
+    else:
+        handle = open(f, 'r')
+
+    aa_matrix = {}
+
+    row_letters = handle.readline().strip()
+    col_letters = handle.readline().strip()
+
+    for row_i, row_letter in enumerate(row_letters):
+
+        values = handle.readline().strip().split(',')
+
+        for col_i, (col_letter, value) in enumerate(zip(col_letters, values)):
+
+            aa_matrix['%s%s' % (row_letter, col_letter)] = float(value)
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+    return aa_matrix
+            
+
 def read_aa_matrix_db(f):
 
     # open file if path is provided instead of file
@@ -981,7 +1017,7 @@ def read_aa_matrix_db(f):
                 row_aa = row_letters[row_index]
                 for col_index, token in enumerate(tokens):
                     col_aa = col_letters[col_index]
-                    if(token == '-'):
+                    if(token == '-'):  # this is not nice... what to do...?
                         aa_matrix[row_aa + col_aa] = -1
                         aa_matrix[col_aa + row_aa] = -1
                     else:    
