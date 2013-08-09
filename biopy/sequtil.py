@@ -15,13 +15,14 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 # amino acid scale files
 AA_SCALE_DIR = os.path.join(DATA_DIR, 'amino_acid_scales')
-AA_SCALE_DB_F = os.path.join(AA_SCALE_DIR, 'aascale1')
 AA_SCALE_GEORGIEV_F = os.path.join(AA_SCALE_DIR, 'georgiev.txt')
 AA_SCALE_AAINDEX_F = os.path.join(AA_SCALE_DIR, 'aaindex1')
+AA_SCALE_PSEAAC_F = os.path.join(AA_SCALE_DIR, 'pseaac.txt')
+
+# amino acid matrix files
 AA_MATRIX_DIR = os.path.join(DATA_DIR, 'amino_acid_matrices')
 AA_MATRIX_AAINDEX_F = os.path.join(AA_MATRIX_DIR, 'aaindex2')
-
-# TODO add amino acid distance matrix files
+AA_MATRIX_SW_F = os.path.join(AA_MATRIX_DIR, 'schneider_wrede.txt')
 
 ###############################################################################
 #
@@ -110,13 +111,16 @@ def _standardized_scale(scale):
 
 
 # 19 varimax Georgiev scales
-georgiev_scales = file_io.read_scales(AA_SCALE_GEORGIEV_F)
+georgiev_scales, georgiev_scale_ids = file_io.read_scales(AA_SCALE_GEORGIEV_F)
 georgiev_st_scales = [_standardized_scale(s) for s in georgiev_scales]
 
 # 544 amino acid scales from AAindex ver.9.1
 aas_tuples = file_io.read_scales_db(AA_SCALE_AAINDEX_F)
 aaindex_scale_ids, aaindex_scale_descr, aaindex_scales = zip(*aas_tuples)
 aaindex_st_scales = [_standardized_scale(s) for s in aaindex_scales]
+
+# 5 amino acid scales used by PseAAC method
+pseaac_scales, pseaac_scale_ids = file_io.read_scales(AA_SCALE_PSEAAC_F)
 
 
 # TODO index_id? descr?
@@ -150,6 +154,11 @@ def get_georgiev_scales(ambiguous=True, standardized=True):
     return [get_georgiev_scale(i, ambiguous, standardized) for i in xrange(19)]
 
 
+def get_pseaac_scale(index, ambiguous=True):
+    scale = pseaac_scales[index].copy()
+    return _get_scale(scale, ambiguous)
+
+
 def _get_scale(scale, ambiguous):
     '''
     '''
@@ -174,6 +183,8 @@ def _get_non_aa_letter_dict():
 
 aa_matrix_ids, aa_matrix_descr, aa_matrices =\
     zip(*file_io.read_aa_matrix_db(AA_MATRIX_AAINDEX_F))
+
+aa_matrix_sw = file_io.read_aa_matrix(AA_MATRIX_SW_F)
 
 
 ###############################################################################
@@ -915,29 +926,26 @@ def seq_order_coupling_number(seq, r, aa_dists):
     return sum([math.pow(aa_dists[p], 2) for p in ordered_seq_pairs(seq, r)])
 
 
-def quasi_sequence_order_descriptors(seq, max_rank, aa_dists):
+def quasi_sequence_order_descriptors(seq, aa_dists, rank, weight=0.1):
     '''
     This
 
-    TODO parse aa_dist using sequtil...
-
-    Number returned values is max_rank + 20
+    Number returned values is rank + 20
     '''
 
-    if(max_rank <= 0):
+    if(rank <= 0):
         raise ValueError('The max rank should be larger than 0.')
 
-    # sequence order coupling numbers 1 ... max_rank
+    # sequence order coupling numbers 1 ... rank
     socns = [seq_order_coupling_number(seq, r, aa_dists)
-             for r in xrange(1, max_rank + 1)]
+             for r in xrange(1, rank + 1)]
 
     # denominator terms
     sum_aa_freqs = 1.0
-    w = 0.1
     sum_socns = sum(socns)
 
     # denominator
-    denominator = sum_aa_freqs + w * sum_socns
+    denominator = sum_aa_freqs + weight * sum_socns
 
     # type-1 quasi-sequence-order (amino acid composition / denominator)
     aacomp = letter_composition(seq, aa_unambiguous_alph)
@@ -946,7 +954,18 @@ def quasi_sequence_order_descriptors(seq, max_rank, aa_dists):
     # type-2 quasi-sequence-order
     type2_qsod = numpy.array(socns) / denominator
 
-    return numpy.concatenate(type1_qsod, type2_qsod)
+    return numpy.concatenate((type1_qsod, type2_qsod))
+
+
+def pseudo_amino_acid_composition(seq, aa_scale, lambda_, weight=0.05):
+
+    if(lambda_ <= 0):
+        raise ValueError('The max rank should be larger than 0.')
+
+    # TODO implement
+
+    # return stub output, array with zeros
+    return numpy.zeros(20 + lambda_)
 
 
 def state_subseq(seq, state_seq, state_letter):
