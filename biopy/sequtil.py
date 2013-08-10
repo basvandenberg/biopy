@@ -3,6 +3,7 @@ import sys
 import itertools
 import numpy
 import math
+from functools import wraps
 
 from biopy import file_io
 
@@ -1059,10 +1060,24 @@ def window_seq(seq, window_size, overlapping=False):
         return [seq[i:i + window_size] for i in range(start, stop, step)]
 
 
-filter_cache = {}
+def memoize(func):
+    '''
+    This function can be used as decorator to store results of computationally
+    expensive functions in a cache store (dict)
+    '''
+    cache = {}
+
+    @wraps(func)
+    def wrapper(*args):
+        if args not in cache.keys():
+            cache[args] = func(*args)
+        return cache[args]
+
+    return wrapper
 
 
-def convolution_filter(window=9, edge=0):
+@memoize
+def convolution_filter(window, edge):
     '''
     This function returns a triangular convolution filter. The filter values
     add up to 1.0.
@@ -1070,7 +1085,7 @@ def convolution_filter(window=9, edge=0):
     Args:
         window (int): The width of the filter
         edge (float): The weight of the edges of the window [0.0, 1.0]
-        NOTO edge is now 0..100 (in percentage)
+        NOTE edge is now 0..100 (in percentage)
     Raises:
         ValueError: if the window is not an uneven number.
         ValueError: if the window is too small, smaller than 3.
@@ -1083,9 +1098,6 @@ def convolution_filter(window=9, edge=0):
     array([ 0.2,  0.6,  0.2])
     '''
 
-    if((window, edge) in filter_cache.keys()):
-        return filter_cache[(window, edge)]
-
     if(window % 2 == 0):
         raise ValueError('Window must be an uneven number.')
     if(window < 3):
@@ -1095,7 +1107,6 @@ def convolution_filter(window=9, edge=0):
 
     if(edge == 100):
         result = numpy.ones(window) / window
-        filter_cache[(window, edge)] = result
         return result
     else:
         result = numpy.ones(window)
@@ -1104,7 +1115,6 @@ def convolution_filter(window=9, edge=0):
         result[:num] = forw
         result[-num:] = forw[::-1]
         result = result / result.sum()
-        filter_cache[(window, edge)] = result
         return result
 
 
