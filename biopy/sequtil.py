@@ -948,8 +948,6 @@ def property_ctd(seq, property):
     # distribution
     fractions = [0.25, 0.5, 0.75, 1.0]
 
-    print state_seq
-
     d0 = distribution(state_seq, 'A', fractions)
     d1 = distribution(state_seq, 'B', fractions)
     d2 = distribution(state_seq, 'C', fractions)
@@ -1050,10 +1048,6 @@ def sequence_order_correlated_factors(seq, r, aa_corr):
     '''
     '''
     corr_values = [aa_corr[p] for p in ordered_seq_pairs(seq, r)]
-    print '*******'
-    print len(seq)
-    print r
-    print '*******'
     return sum(corr_values) / (len(seq) - r)
 
 
@@ -1071,6 +1065,7 @@ def pseaac_type1(seq, aa_scales, lambda_, weight=0.05):
 
     if(lambda_ <= 0):
         raise ValueError('The max rank should be larger than 0.')
+
 
     # TODO move to correlation matrix function???
     if(all(type(a) == str for a in aa_scales)):
