@@ -1050,6 +1050,10 @@ def sequence_order_correlated_factors(seq, r, aa_corr):
     '''
     '''
     corr_values = [aa_corr[p] for p in ordered_seq_pairs(seq, r)]
+    print '*******'
+    print len(seq)
+    print r
+    print '*******'
     return sum(corr_values) / (len(seq) - r)
 
 
@@ -1074,6 +1078,8 @@ def pseaac_type1(seq, aa_scales, lambda_, weight=0.05):
     elif not(all([type(a) == int and a in range(len(pseaac_scale_ids))
                   for a in aa_scales])):
         raise ValueError('Wrong amino acid scale index provided.')
+
+    aa_scales = tuple(sorted(aa_scales))
 
     aa_corr = pseaac_correlation_matrix(aa_scales)
 
