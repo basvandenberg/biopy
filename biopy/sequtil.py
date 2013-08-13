@@ -198,7 +198,7 @@ def _get_non_aa_letter_dict():
 
 
 @memoize
-def get_normalized_pseaac_scale(pseaac_scale_index):
+def normalized_pseaac_scale(pseaac_scale_index):
 
     if not(pseaac_scale_index in xrange(len(pseaac_scales))):
         raise ValueError('PseAAC scale index out of range.')
@@ -234,7 +234,7 @@ def pseaac_correlation_matrix(pseaac_scale_indices):
     don't forget, tuple with one item is (0,)!
     '''
 
-    scales = [get_normalized_pseaac_scale(i) for i in pseaac_scale_indices]
+    scales = [normalized_pseaac_scale(i) for i in pseaac_scale_indices]
     alph = aa_unambiguous_alph
 
     matrix = {}
@@ -247,6 +247,21 @@ def pseaac_correlation_matrix(pseaac_scale_indices):
 
     return matrix
 
+
+@memoize
+def pseaac_type2_correlation_matrix(pseaac_scale_index):
+
+    scale = normalized_pseaac_scale(pseaac_scale_index)
+    alph = aa_unambiguous_alph
+
+    matrix = {}
+    for index, aa1 in enumerate(alph):
+        for aa2 in alph[index:]:
+            prod = scale[aa1] * scale[aa2]
+            matrix[aa1 + aa2] = prod
+            matrix[aa2 + aa1] = prod
+
+    return matrix
 
 ###############################################################################
 #
@@ -1038,7 +1053,7 @@ def sequence_order_correlated_factors(seq, r, aa_corr):
     return sum(corr_values) / (len(seq) - r)
 
 
-def pseudo_amino_acid_composition(seq, aa_scales, lambda_, weight=0.05):
+def pseaac_type1(seq, aa_scales, lambda_, weight=0.05):
     '''
     This function calculates the pseudo amino acid composition for amino acid
     sequence seq using the provided liste of amino acid scales and lambda as
@@ -1065,6 +1080,42 @@ def pseudo_amino_acid_composition(seq, aa_scales, lambda_, weight=0.05):
     # sequence order correlated factors
     socfs = [sequence_order_correlated_factors(seq, l, aa_corr)
              for l in xrange(1, lambda_ + 1)]
+
+    # denominator terms
+    sum_aa_freqs = 1.0
+    sum_socfs = sum(socfs)
+
+    # denominator
+    denominator = sum_aa_freqs + weight * sum_socfs
+
+    # first 20 features, aa composition
+    aacomp = letter_composition(seq, aa_unambiguous_alph)
+    first_20_aacomp = aacomp / denominator
+
+    # order stuff
+    rest = (weight * numpy.array(socfs)) / denominator
+
+    return numpy.concatenate((first_20_aacomp, rest))
+
+
+def pseaac_type2(seq, aa_scales, lambda_, weight=0.05):
+
+    if(lambda_ <= 0):
+        raise ValueError('The max rank should be larger than 0.')
+
+    # TODO move to correlation matrix function???
+    if(all(type(a) == str for a in aa_scales)):
+        aa_scales = [pseaac_scale_ids.index(a) for a in aa_scales]
+    elif not(all([type(a) == int and a in range(len(pseaac_scale_ids))
+                  for a in aa_scales])):
+        raise ValueError('Wrong amino acid scale index provided.')
+
+    aa_cors = [pseaac_type2_correlation_matrix(i) for i in aa_scales]
+
+    # sequence order correlated factors
+    socfs = [sequence_order_correlated_factors(seq, l, aa_cor)
+             for l in xrange(1, lambda_ + 1)
+             for aa_cor in aa_cors]
 
     # denominator terms
     sum_aa_freqs = 1.0
