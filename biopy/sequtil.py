@@ -7,6 +7,28 @@ from functools import wraps
 
 from biopy import file_io
 
+
+###############################################################################
+# Helper functions / decorators
+###############################################################################
+
+
+def memoize(func):
+    '''
+    This function can be used as decorator to store results of computationally
+    expensive functions in a cache store (dict)
+    '''
+    cache = {}
+
+    @wraps(func)
+    def wrapper(*args):
+        if args not in cache.keys():
+            cache[args] = func(*args)
+        return cache[args]
+
+    return wrapper
+
+
 ###############################################################################
 # Paths to data files
 ###############################################################################
@@ -120,7 +142,7 @@ aas_tuples = file_io.read_scales_db(AA_SCALE_AAINDEX_F)
 aaindex_scale_ids, aaindex_scale_descr, aaindex_scales = zip(*aas_tuples)
 aaindex_st_scales = [_standardized_scale(s) for s in aaindex_scales]
 
-# 5 amino acid scales used by PseAAC method
+# 6 amino acid scales used by PseAAC method
 pseaac_scales, pseaac_scale_ids = file_io.read_scales(AA_SCALE_PSEAAC_F)
 
 
@@ -173,6 +195,57 @@ def _get_non_aa_letter_dict():
     '''
     other_letters = aa_ambiguous_alph + aa_special_alph + aa_ter_alph
     return dict(zip(other_letters, len(other_letters) * [0.0]))
+
+
+@memoize
+def get_normalized_pseaac_scale(pseaac_scale_index):
+
+    if not(pseaac_scale_index in xrange(len(pseaac_scales))):
+        raise ValueError('PseAAC scale index out of range.')
+
+    letters, values = zip(*[i for i in
+                            pseaac_scales[pseaac_scale_index].iteritems()])
+
+    # list with scale values
+    values = numpy.array(values)
+
+    # mean scale value
+    mean = values.mean()
+
+    # scale values with the mean subtracted
+    values_minus_mean = values - mean
+
+    # squared distances between original and mean
+    summed_sq_dists_to_mean = sum(numpy.power(values_minus_mean, 2))
+
+    # the denominator
+    denominator = math.sqrt(summed_sq_dists_to_mean / 20)
+
+    # normalized scale values
+    norm_values = values_minus_mean / denominator
+
+    return dict(zip(letters, norm_values))
+
+
+@memoize
+def pseaac_correlation_matrix(pseaac_scale_indices):
+    '''
+    pseaac_scale_indices should be sorted tuple with scale indices...!
+    don't forget, tuple with one item is (0,)!
+    '''
+
+    scales = [get_normalized_pseaac_scale(i) for i in pseaac_scale_indices]
+    alph = aa_unambiguous_alph
+
+    matrix = {}
+    for index, aa1 in enumerate(alph):
+        for aa2 in alph[index:]:
+            sqr_dists = [math.pow(s[aa1] - s[aa2], 2) for s in scales]
+            avg_dists = sum(sqr_dists) / len(scales)
+            matrix[aa1 + aa2] = avg_dists
+            matrix[aa2 + aa1] = avg_dists
+
+    return matrix
 
 
 ###############################################################################
@@ -953,20 +1026,61 @@ def quasi_sequence_order_descriptors(seq, aa_dists, rank, weight=0.1):
     type1_qsod = aacomp / denominator
 
     # type-2 quasi-sequence-order
-    type2_qsod = numpy.array(socns) / denominator
+    type2_qsod = (weight * numpy.array(socns)) / denominator
 
     return numpy.concatenate((type1_qsod, type2_qsod))
 
 
-def pseudo_amino_acid_composition(seq, aa_scale, lambda_, weight=0.05):
+def sequence_order_correlated_factors(seq, r, aa_corr):
+    '''
+    '''
+    corr_values = [aa_corr[p] for p in ordered_seq_pairs(seq, r)]
+    return sum(corr_values) / (len(seq) - r)
+
+
+def pseudo_amino_acid_composition(seq, aa_scales, lambda_, weight=0.05):
+    '''
+    This function calculates the pseudo amino acid composition for amino acid
+    sequence seq using the provided liste of amino acid scales and lambda as
+    maximal distance parameter.
+
+    Raises:
+        ValueError: if one of the provided aa_scales is not in the list of
+                    pseaac scales
+        ValueError: if lambda is zero or smaller.
+    '''
 
     if(lambda_ <= 0):
         raise ValueError('The max rank should be larger than 0.')
 
-    # TODO implement
+    # TODO move to correlation matrix function???
+    if(all(type(a) == str for a in aa_scales)):
+        aa_scales = [pseaac_scale_ids.index(a) for a in aa_scales]
+    elif not(all([type(a) == int and a in range(len(pseaac_scale_ids))
+                  for a in aa_scales])):
+        raise ValueError('Wrong amino acid scale index provided.')
 
-    # return stub output, array with zeros
-    return numpy.zeros(20 + lambda_)
+    aa_corr = pseaac_correlation_matrix(aa_scales)
+
+    # sequence order correlated factors
+    socfs = [sequence_order_correlated_factors(seq, l, aa_corr)
+             for l in xrange(1, lambda_ + 1)]
+
+    # denominator terms
+    sum_aa_freqs = 1.0
+    sum_socfs = sum(socfs)
+
+    # denominator
+    denominator = sum_aa_freqs + weight * sum_socfs
+
+    # first 20 features, aa composition
+    aacomp = letter_composition(seq, aa_unambiguous_alph)
+    first_20_aacomp = aacomp / denominator
+
+    # order stuff
+    rest = (weight * numpy.array(socfs)) / denominator
+
+    return numpy.concatenate((first_20_aacomp, rest))
 
 
 def state_subseq(seq, state_seq, state_letter):
@@ -1058,22 +1172,6 @@ def window_seq(seq, window_size, overlapping=False):
         if(overlapping):
             step = 1
         return [seq[i:i + window_size] for i in range(start, stop, step)]
-
-
-def memoize(func):
-    '''
-    This function can be used as decorator to store results of computationally
-    expensive functions in a cache store (dict)
-    '''
-    cache = {}
-
-    @wraps(func)
-    def wrapper(*args):
-        if args not in cache.keys():
-            cache[args] = func(*args)
-        return cache[args]
-
-    return wrapper
 
 
 @memoize
