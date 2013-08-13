@@ -1,4 +1,31 @@
+'''
+import __builtin__
+openfiles = set()
+oldfile = __builtin__.file
+class newfile(oldfile):
+    def __init__(self, *args):
+        self.x = args[0]
+        print "### OPENING %s ###" % str(self.x)            
+        oldfile.__init__(self, *args)
+        openfiles.add(self)
+
+    def close(self):
+        print "### CLOSING %s ###" % str(self.x)
+        oldfile.close(self)
+        openfiles.remove(self)
+oldopen = __builtin__.open
+def newopen(*args):
+    return newfile(*args)
+__builtin__.file = newfile
+__builtin__.open = newopen
+
+def printOpenFiles():
+    print "### %d OPEN FILES: [%s]" % (len(openfiles), ", ".join(f.x for f in
+openfiles))
+'''
+
 import os
+from functools import wraps
 
 '''
 Created on Sep 10, 2011
@@ -6,8 +33,57 @@ Created on Sep 10, 2011
 @author: Bastiaan van den Berg
 '''
 
+# TODO still busy with this nice decorator...
+# How do I close a file afterwards???
+def file_handler(read_write):
+    '''
+    This function can be used as a decorator around functions that read/write
+    data to files. It assumes that the first argument if a reference to a file,
+    either by a path to the or as a file object. If a path is provided, the
+    wrapper turns this into a file object.
+    '''
 
-# This is a generator function
+    print 'file_handler'
+    print read_write
+    print
+
+    def file_handler_wrapper(func):
+
+        print 'file_handler_wrapper'
+        print func
+        print
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+
+            print 'wrapper'
+            print args
+            print kwargs
+
+            # turn first arguments into file if it is a path to a file
+            f, args_rest = args[0], args[1:]
+
+            print f
+
+            if(type(f) == str):
+                print 'open'
+                fin = open(f, read_write)
+                print 'read'
+                #result = [s for s in func(f, *args_rest, **kwargs)]
+                return func(fin, *args_rest, **kwargs)
+                print 'close'
+                f.close()
+            else:
+                #result = func(*args, **kwargs)
+                return func(*args, **kwargs)
+
+            #return result
+
+        return wrapper
+
+    return file_handler_wrapper
+
+#@file_handler('r')
 def read_fasta(f, filter_ids=None):
     '''
     '''
