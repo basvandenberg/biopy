@@ -1,29 +1,3 @@
-'''
-import __builtin__
-openfiles = set()
-oldfile = __builtin__.file
-class newfile(oldfile):
-    def __init__(self, *args):
-        self.x = args[0]
-        print "### OPENING %s ###" % str(self.x)            
-        oldfile.__init__(self, *args)
-        openfiles.add(self)
-
-    def close(self):
-        print "### CLOSING %s ###" % str(self.x)
-        oldfile.close(self)
-        openfiles.remove(self)
-oldopen = __builtin__.open
-def newopen(*args):
-    return newfile(*args)
-__builtin__.file = newfile
-__builtin__.open = newopen
-
-def printOpenFiles():
-    print "### %d OPEN FILES: [%s]" % (len(openfiles), ", ".join(f.x for f in
-openfiles))
-'''
-
 import os
 from functools import wraps
 
@@ -33,76 +7,66 @@ Created on Sep 10, 2011
 @author: Bastiaan van den Berg
 '''
 
-# TODO still busy with this nice decorator...
-# How do I close a file afterwards???
-def file_handler(read_write):
+
+def file_reader(func):
     '''
-    This function can be used as a decorator around functions that read/write
-    data to files. It assumes that the first argument if a reference to a file,
-    either by a path to the or as a file object. If a path is provided, the
-    wrapper turns this into a file object.
+    This function can be used as a decorator around functions read data from a
+    file. It assumes that the first argument if a reference to a file, either
+    by a path to the or as a file object. If a path is provided, the wrapper
+    turns this into a file object.
     '''
 
-    print 'file_handler'
-    print read_write
-    print
+    @wraps(func)
+    def wrapper(*args, **kwargs):
 
-    def file_handler_wrapper(func):
+        # extract file argument (should always be the first argument)
+        f, args_rest = args[0], args[1:]
 
-        print 'file_handler_wrapper'
-        print func
-        print
+        if(type(f) == str):
+            with open(f, 'r') as fin:
+                for item in func(fin, *args_rest, **kwargs):
+                    yield item
+        else:
+            for item in func(*args, **kwargs):
+                yield item
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
+    return wrapper
 
-            print 'wrapper'
-            print args
-            print kwargs
 
-            # turn first arguments into file if it is a path to a file
-            f, args_rest = args[0], args[1:]
+@file_reader
+def read_ids(f):
 
-            print f
+    for line in f:
+        yield(line.split()[0])
 
-            if(type(f) == str):
-                print 'open'
-                fin = open(f, read_write)
-                print 'read'
-                #result = [s for s in func(f, *args_rest, **kwargs)]
-                return func(fin, *args_rest, **kwargs)
-                print 'close'
-                f.close()
-            else:
-                #result = func(*args, **kwargs)
-                return func(*args, **kwargs)
 
-            #return result
-
-        return wrapper
-
-    return file_handler_wrapper
-
-#@file_handler('r')
-def read_fasta(f, filter_ids=None):
-    '''
-    '''
+def write_ids(f, ids):
 
     # open file if path is provided instead of file
     if(type(f) == file):
         handle = f
-    # HACK to handle response of fasta download from uniprot website
-    elif(f.__class__.__name__ == 'addinfourl'):
-        handle = f
     else:
-        handle = open(f, 'r')
+        handle = open(f, 'w')
+
+    for uid in ids:
+        handle.write('%s\n' % (uid))
+
+    # close file if we opened it
+    if not(type(f) == file):
+        handle.close()
+
+
+@file_reader
+def read_fasta(f, filter_ids=None):
+    '''
+    '''
 
     # initialize sequence id and string to an empty string
     seq_id = ''
     seq_str = ''
 
     # iterate over each line in the fasta file
-    for line in handle:
+    for line in f:
 
         if(seq_id == '' and seq_str == ''):
             if(line[0] == ">"):
@@ -132,10 +96,6 @@ def read_fasta(f, filter_ids=None):
         if(filter_ids is None or seq_id in filter_ids):
             yield (seq_id, seq_str)
 
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
 
 def write_fasta(f, seqs):
 
@@ -157,23 +117,17 @@ def write_fasta(f, seqs):
         handle.close()
 
 
-# This is a generator function
+@file_reader
 def read_ensembl_fasta(f, filter_ids=None):
     '''
     '''
-
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
 
     # initialize sequence id and string to an empty string
     seq_id = ""
     seq_str = ""
 
     # iterate over each line in the fasta file
-    for line in handle:
+    for line in f:
 
         if(seq_id == "" and seq_str == ""):
             if(line[0] == ">"):
@@ -213,10 +167,6 @@ def read_ensembl_fasta(f, filter_ids=None):
         if(filter_ids is None or seq_id in filter_ids):
             yield (seq_id, seq_str, ensembl_dict)
 
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
 
 def read_flex(f):
     ids, seqs = zip(*read_fasta(f))
@@ -246,20 +196,15 @@ def write_interaction_counts(f, interaction_counts_data):
     write_tuple_list(f, tuples)
 
 
+@file_reader
 def read_pfam(f):
-
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
 
     # initialize sequence id and list of annotations
     current_id = ""
     current_annotations = []
 
     # iterate over lines
-    for line in handle:
+    for line in f:
 
         if(current_id == "" and len(current_annotations) == 0):
             if(line[0] == ">"):
@@ -298,10 +243,6 @@ def read_pfam(f):
     if not(current_id == ""):
         yield (current_id, current_annotations)
 
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
 
 def write_pfam(f, pfam_data):
 
@@ -324,16 +265,10 @@ def write_pfam(f, pfam_data):
         handle.close()
 
 
+@file_reader
 def read_mutation(f):
 
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
-
-    tuples = []
-    for line in handle:
+    for line in f:
         tokens = line.split()
 
         uni_id = tokens[0]
@@ -352,14 +287,8 @@ def read_mutation(f):
         if(pdb_id == 'None'):
             pdb_id = None
 
-        tuples.append((uni_id, pos, fr, to, label, pep, pep_i, codons,
-                       fr_codon, to_codons, pdb_id, pdb_resnum))
-
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
-    return tuples
+        yield((uni_id, pos, fr, to, label, pep, pep_i, codons, fr_codon,
+               to_codons, pdb_id, pdb_resnum))
 
 
 def write_mutation(f, mutations):
@@ -367,29 +296,17 @@ def write_mutation(f, mutations):
     write_tuple_list(f, mutations)
 
 
+@file_reader
 def read_mut(f):
-
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
 
     types = (str, int, str, str)
 
-    tuples = []
-    for line in handle:
+    for line in f:
         tokens = line.split()
         row = []
         for index, t in enumerate(types):
             row.append(t(tokens[index]))
-        tuples.append(tuple(row))
-
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
-    return tuples
+        yield(tuple(row))
 
 
 def write_mut(f, mutations):
@@ -465,20 +382,10 @@ def write_rasa_dir(rasa_dir, rasa_data):
 
 def read_python_list(f):
 
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
-
     # read list (not very neat, but whatever :)
-    result = eval(handle.read())
+    result = eval(f.read())
     assert(type(result) == list)
     assert(all([type(item) == float for item in result]))
-
-    if not(type(f) == file):
-        handle.close()
-
     return result
 
 
@@ -526,19 +433,11 @@ def write_residue_rank_dir(rank_dir, rank_data):
             write_residue_rank(out_f, rank)
 
 
+@file_reader
 def read_residue_rank(f):
 
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
-
-    # store results
-    result = []
-
     # iterate over lines in file
-    for line in handle:
+    for line in f:
 
         # ignore empty lines and comments
         if(line.strip() and not line[0] == '%'):
@@ -556,13 +455,8 @@ def read_residue_rank(f):
             rvet_score = float(tokens[6])
 
             # store ass tuple and add to result
-            result.append((ali_pos, seq_pos, aa, coverage, var_count,
-                           var_letters, rvet_score))
-
-    if not(type(f) == file):
-        handle.close()
-
-    return result
+            yield((ali_pos, seq_pos, aa, coverage, var_count, var_letters,
+                   rvet_score))
 
 
 def write_residue_rank(f, rank_data):
@@ -741,55 +635,12 @@ def read_propka30(filename):
     return((feph, chphf, chphu, femin, feminph, pif, piu))
 
 
-# This is a generator function
-def read_ids(f):
-
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
-
-    for line in handle:
-        tokens = line.split()
-        yield(tokens[0])
-
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
-
-def write_ids(f, ids):
-
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'w')
-
-    for uid in ids:
-        handle.write('%s\n' % (uid))
-
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
-
+@file_reader
 def read_names(f):
 
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
-
-    for line in handle:
+    for line in f:
         name = line.strip()
         yield(name)
-
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
 
 
 def write_names(f, names):
@@ -850,28 +701,15 @@ def read_settings_dict(f):
     return settings_dict
 
 
-# use eval instead of passing list of types???
+@file_reader
 def read_tuple_list(f, types):
 
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
-
-    tuples = []
-    for line in handle:
+    for line in f:
         tokens = line.split()
         row = []
         for index in xrange(len(types)):
             row.append(types[index](tokens[index]))
-        tuples.append(tuple(row))
-
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
-    return tuples
+        yield(tuple(row))
 
 
 def write_tuple_list(f, tuple_list):
@@ -964,31 +802,25 @@ def read_scales(f):
     return (scales, scale_ids)
 
 
+@file_reader
 def read_scales_db(f):
-
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
-
-    scales = []
 
     scale_id = None
     scale_descr = None
     scale = []
     letters = None
 
-    for line in handle:
+    for line in f:
         tokens = line.split()
 
         if(len(tokens) > 0):
 
             if(tokens[0] == '//'):
-                #append new scale
+
+                # yield scale
                 assert(len(letters) == len(scale))
-                scales.append((scale_id, scale_descr,
-                               dict(zip(letters, scale))))
+                yield((scale_id, scale_descr, dict(zip(letters, scale))))
+
                 # reset variables for next scale
                 scale_id = None
                 scale_descr = None
@@ -1012,12 +844,6 @@ def read_scales_db(f):
                         scale.append(0.0)
             else:
                 pass
-
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
-    return scales
 
 
 def read_aa_matrix(f):
@@ -1046,17 +872,10 @@ def read_aa_matrix(f):
         handle.close()
 
     return aa_matrix
-            
 
+
+@file_reader
 def read_aa_matrix_db(f):
-
-    # open file if path is provided instead of file
-    if(type(f) == file):
-        handle = f
-    else:
-        handle = open(f, 'r')
-
-    matrices = []
 
     mat_id = None
     mat_descr = None
@@ -1064,21 +883,24 @@ def read_aa_matrix_db(f):
     row_letters = None
     col_letters = None
 
-    for line in handle:
+    for line in f:
 
         tokens = line.split()
 
         if(len(tokens) > 0):
 
             if(tokens[0] == '//'):
-                #append new scale
-                matrices.append((mat_id, mat_descr, aa_matrix))
+
+                # yield matrix
+                yield((mat_id, mat_descr, aa_matrix))
+
                 # reset variables for next scale
                 mat_id = None
                 mat_descr = None
                 aa_matrix = {}
                 row_letters = None
                 col_letters = None
+
             elif(tokens[0] == 'H'):
                 mat_id = tokens[1]
             elif(tokens[0] == 'D'):
@@ -1096,15 +918,9 @@ def read_aa_matrix_db(f):
                     if(token == '-'):  # this is not nice... what to do...?
                         aa_matrix[row_aa + col_aa] = -1
                         aa_matrix[col_aa + row_aa] = -1
-                    else:    
+                    else:
                         aa_matrix[row_aa + col_aa] = float(token)
                         aa_matrix[col_aa + row_aa] = float(token)
                 row_index += 1
             else:
                 pass
-
-    # close file if we opened it
-    if not(type(f) == file):
-        handle.close()
-
-    return matrices
