@@ -22,7 +22,7 @@ def file_reader(func):
         # extract file argument (should always be the first argument)
         f, args_rest = args[0], args[1:]
 
-        if(type(f) == str):
+        if(isinstance(f, str) or isinstance(f, unicode)):
             with open(f, 'r') as fin:
                 for item in func(fin, *args_rest, **kwargs):
                     yield item
