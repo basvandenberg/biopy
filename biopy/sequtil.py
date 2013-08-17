@@ -305,8 +305,8 @@ aa_subsets = sorted(aa_subset_dict.keys())
 
 # amino acids subdivided into three clusters per 7 properties as obtained
 # from PROFEAT paper
-
-aa_property_divisions = {
+# 2 adjustments...
+AA_PROPERTIES_DIVISIONS = {
     'hydrophobicity': ['RKEDQN', 'GASTPHY', 'CLVIMFW'],
     'normvdw': ['GACSTPD', 'NVEQIL', 'MHKFRYW'],
     'polarity': ['LIFWCMVY', 'PATGS', 'HQRKNED'],
@@ -318,11 +318,16 @@ aa_property_divisions = {
 
 
 def property_division_mapping(property, extra_letters=True):
+    '''
+    This function returns a mapping from amino acid to property 'index': A, B, 
+    or C. Other than unambiguous amino acids are mapped to D if extra_letters
+    is set to True.
+    '''
 
     default_letters = 'ABC'
     extra_letter = 'D'
 
-    clusters = aa_property_divisions[property]
+    clusters = AA_PROPERTIES_DIVISIONS[property]
     assert(len(default_letters) == len(clusters))
 
     d = {}
