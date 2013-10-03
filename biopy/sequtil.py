@@ -803,6 +803,9 @@ def autocorrelation_mb(sequence, scale, lag):
 
     TODO formula
 
+    This autocorrelation evaluates to 0.0 if lag is equal to larger than the
+    sequence length.
+
     >>> autocorrelation_mb('ABACABAC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
     0.5
     >>> autocorrelation_mb('ABACABAC', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 2)
