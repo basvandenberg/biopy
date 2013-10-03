@@ -11,7 +11,7 @@ setup(
     url='http://pypi.python.org/pypi/biopy/',
     license='LICENSE.txt',
     description='A little Swiss Army knife for bioinformaticians',
-    long_description=open('README.txt').read(),
+    long_description=open('README.md').read(),
     install_requires=[
         "numpy >= 1.7.1",
         "scipy >= 0.12.0",
