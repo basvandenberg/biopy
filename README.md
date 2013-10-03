@@ -23,10 +23,10 @@ sequtil.py
 Contains many util functions for biological sequences (DNA and protein). It
 primarily contains functions for calculating sequence-based protein features,
 such as amino acid composition, codon composition, pseudo-amino acid
-composition and autocorrelation and so on.
+composition, autocorrelation and so on.
 
-file_io.py
-----------
+file\_io.py
+-----------
 
 File parsers, most of which will not be useful for general use. It contains
 a very basic FASTA file parser that might be useful.
