@@ -35,7 +35,8 @@ a very basic FASTA file parser that might be useful.
 Dependencies
 ============
 
-The sofware is developed for python2.7. The required to use the software are:
+The sofware is developed for python2.7. The dependencies for using the software
+are:
 
 - numpy >= 1.7.1
 - scipy >= 0.12.0
