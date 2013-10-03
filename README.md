@@ -30,3 +30,21 @@ file\_io.py
 
 File parsers, most of which will not be useful for general use. It contains
 a very basic FASTA file parser that might be useful.
+
+
+Dependencies
+============
+
+The sofware is developed for python2.7. The required to use the software are:
+
+- numpy >= 1.7.1
+- scipy >= 0.12.0
+- matplotlib >= 1.2.2
+
+
+Installation
+============
+
+For installation on a Linux system, use:
+
+    sudo python setup.py install
