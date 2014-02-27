@@ -712,21 +712,20 @@ def diletter_count(seq, alph, distance):
     array([0, 1, 1, 2])
     >>> diletter_count('ABBBA', 'AB', 2)
     array([0, 1, 1, 1])
+    >>> diletter_count('ABBBC', 'AB', 1)
+    array([0, 1, 0, 2])
     '''
 
-    # dictionory to store ordered pair counts
-    pairs = ordered_alph_pairs(alph)
-    pair_counts = dict(zip(pairs, len(pairs) * [0]))
+    # construct empty dictionory to store diletter counts
+    alph_pairs = ordered_alph_pairs(alph)
+    pair_counts = dict(zip(alph_pairs, len(alph_pairs) * [0]))
 
     # count pairs while walking over the sequence
     for seq_pair in ordered_seq_pairs(seq, distance):
-        pair_counts[seq_pair] += 1
+        if(seq_pair in pair_counts.keys()):
+            pair_counts[seq_pair] += 1
 
-    # TODO time difference between the two
-    #return numpy.array([ordered_seq_pairs.count(p) for p in pairs],
-    #                   dtype=int)
-
-    return numpy.array([pair_counts[p] for p in pairs], dtype=int)
+    return numpy.array([pair_counts[p] for p in alph_pairs], dtype=int)
 
 
 def letter_composition(seq, alph):
@@ -1249,10 +1248,10 @@ def convolution_filter(window, edge):
         ValueError: if the window is too small, smaller than 3.
         ValueError: if the edge parameter is out of range [0.0, 1.0].
 
-    >>> convolution_filter()
+    >>> convolution_filter(9, 0.0)
     array([ 0.    ,  0.0625,  0.125 ,  0.1875,  0.25  ,  0.1875,  0.125 ,
             0.0625,  0.    ])
-    >>> convolution_filter(window=3, edge=33.333333)
+    >>> convolution_filter(3, 33.333333)
     array([ 0.2,  0.6,  0.2])
     '''
 
@@ -1644,3 +1643,7 @@ def single_mutation_aa_substitution_stats():
     print 'TOTAL: %i' % (len(aa_substitutions()))
     #print impossible_subs
     print ''
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
