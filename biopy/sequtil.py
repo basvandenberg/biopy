@@ -1053,9 +1053,17 @@ def quasi_sequence_order_descriptors(seq, aa_dists, rank, weight=0.1):
 
 def sequence_order_correlated_factors(seq, r, aa_corr):
     '''
+    NOTE: undesired result if len(seq) <= r. For now zero is returned in this
+    case. Need to check if this is the correct behaviour.
+
+    NOTE: Correlation value zero is used as default, in case of ambiguous amino
+    acids occur.
     '''
-    corr_values = [aa_corr[p] for p in ordered_seq_pairs(seq, r)]
-    return sum(corr_values) / (len(seq) - r)
+    if(len(seq) < r):
+        return 0.0
+    else:
+        corr_values = [aa_corr.get(p, 0.0) for p in ordered_seq_pairs(seq, r)]
+        return sum(corr_values) / (len(seq) - r)
 
 
 def pseaac_type1(seq, aa_scales, lambda_, weight=0.05):
@@ -1072,7 +1080,6 @@ def pseaac_type1(seq, aa_scales, lambda_, weight=0.05):
 
     if(lambda_ <= 0):
         raise ValueError('The max rank should be larger than 0.')
-
 
     # TODO move to correlation matrix function???
     if(all(type(a) == str for a in aa_scales)):

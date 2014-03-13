@@ -1,1 +1,12 @@
+0.1.1,
+
+Resolved issues:
+
+- Issue #3: Pseudo-amino-acid-composition calculation results in error if
+  sequences contains ambiguous amino acids
+- Issue #2: Incorrect pseudo amino acid composition type 1 and 2 if len(seq) < 
+  lambda
+- Issue #1: Cannot calculate di-letter counts if seq contains letters that are
+  not in alph.
+
 0.1.0, 3 Octobre 2013 -- Initial release.
