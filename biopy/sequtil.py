@@ -818,6 +818,10 @@ def autocorrelation_mb(sequence, scale, lag):
     if(lag < 1):
         raise ValueError('The provided lag should be a positive integer.')
 
+    # TODO check if this is the correct approach
+    if(len(seq) <= lag):
+        return 0.0
+
     # transform sequence to signal using the provided scale
     signal = numpy.array(seq_signal_raw(sequence, scale))
 
@@ -847,6 +851,13 @@ def autocorrelation_moran(sequence, scale, lag):
     >>> autocorrelation_moran('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
     0.0
     '''
+
+    if(lag < 1):
+        raise ValueError('The provided lag should be a positive integer.')
+
+    # TODO check if this is the correct approach
+    if(len(seq) <= lag):
+        return 0.0
 
     # transform sequence to signal using the provided scale
     signal = numpy.array(seq_signal_raw(sequence, scale))
@@ -891,6 +902,13 @@ def autocorrelation_geary(sequence, scale, lag):
     >>> autocorrelation_geary('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
     0.0
     '''
+
+    if(lag < 1):
+        raise ValueError('The provided lag should be a positive integer.')
+
+    # TODO check if this is the correct approach
+    if(len(seq) <= lag):
+        return 0.0
 
     # transform sequence to signal using the provided scale
     signal = numpy.array(seq_signal_raw(sequence, scale))
