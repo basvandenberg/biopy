@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='biopy',
-    version='0.1.0',
+    version='0.1.1',
     author='B.A. van den Berg',
     author_email='b.a.vandenberg@gmail.com',
     packages=['biopy'],
