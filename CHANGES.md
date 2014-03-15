@@ -1,4 +1,4 @@
-# 0.1.1, 15 March 2014
+### 0.1.1, 15 March 2014
 
 - Added extra doctests
 - Resolved issues:
@@ -12,4 +12,4 @@
     - Issue #1: Cannot calculate di-letter counts if seq contains letters that
                 are not in alph.
 
-# 0.1.0, 3 Octobre 2013 -- Initial release.
+### 0.1.0, 3 Octobre 2013 -- Initial release.
