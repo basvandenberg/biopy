@@ -319,7 +319,7 @@ AA_PROPERTIES_DIVISIONS = {
 
 def property_division_mapping(property, extra_letters=True):
     '''
-    This function returns a mapping from amino acid to property 'index': A, B, 
+    This function returns a mapping from amino acid to property 'index': A, B,
     or C. Other than unambiguous amino acids are mapped to D if extra_letters
     is set to True.
     '''
@@ -712,21 +712,20 @@ def diletter_count(seq, alph, distance):
     array([0, 1, 1, 2])
     >>> diletter_count('ABBBA', 'AB', 2)
     array([0, 1, 1, 1])
+    >>> diletter_count('ABBBC', 'AB', 1)
+    array([0, 1, 0, 2])
     '''
 
-    # dictionory to store ordered pair counts
-    pairs = ordered_alph_pairs(alph)
-    pair_counts = dict(zip(pairs, len(pairs) * [0]))
+    # construct empty dictionory to store diletter counts
+    alph_pairs = ordered_alph_pairs(alph)
+    pair_counts = dict(zip(alph_pairs, len(alph_pairs) * [0]))
 
     # count pairs while walking over the sequence
     for seq_pair in ordered_seq_pairs(seq, distance):
-        pair_counts[seq_pair] += 1
+        if(seq_pair in pair_counts.keys()):
+            pair_counts[seq_pair] += 1
 
-    # TODO time difference between the two
-    #return numpy.array([ordered_seq_pairs.count(p) for p in pairs],
-    #                   dtype=int)
-
-    return numpy.array([pair_counts[p] for p in pairs], dtype=int)
+    return numpy.array([pair_counts[p] for p in alph_pairs], dtype=int)
 
 
 def letter_composition(seq, alph):
@@ -814,10 +813,18 @@ def autocorrelation_mb(sequence, scale, lag):
     -1.0
     >>> autocorrelation_mb('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
     1.0
+    >>> autocorrelation_mb('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 8)
+    0.0
+    >>> autocorrelation_mb('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 12)
+    0.0
     '''
 
     if(lag < 1):
         raise ValueError('The provided lag should be a positive integer.')
+
+    # TODO check if this is the correct approach
+    if(len(sequence) <= lag):
+        return 0.0
 
     # transform sequence to signal using the provided scale
     signal = numpy.array(seq_signal_raw(sequence, scale))
@@ -847,7 +854,18 @@ def autocorrelation_moran(sequence, scale, lag):
     -1.0
     >>> autocorrelation_moran('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
     0.0
+    >>> autocorrelation_moran('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 8)
+    0.0
+    >>> autocorrelation_moran('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 12)
+    0.0
     '''
+
+    if(lag < 1):
+        raise ValueError('The provided lag should be a positive integer.')
+
+    # TODO check if this is the correct approach
+    if(len(sequence) <= lag):
+        return 0.0
 
     # transform sequence to signal using the provided scale
     signal = numpy.array(seq_signal_raw(sequence, scale))
@@ -891,7 +909,18 @@ def autocorrelation_geary(sequence, scale, lag):
     1.75
     >>> autocorrelation_geary('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 4)
     0.0
+    >>> autocorrelation_geary('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 8)
+    0.0
+    >>> autocorrelation_geary('BBBBBBBB', {'A': 0.0, 'B': 1.0, 'C': -1.0}, 12)
+    0.0
     '''
+
+    if(lag < 1):
+        raise ValueError('The provided lag should be a positive integer.')
+
+    # TODO check if this is the correct approach
+    if(len(sequence) <= lag):
+        return 0.0
 
     # transform sequence to signal using the provided scale
     signal = numpy.array(seq_signal_raw(sequence, scale))
@@ -934,6 +963,37 @@ def property_ctd(seq, property):
     chr
     ss
     sa
+
+    >>> s = 'ACACACACAC'
+
+    >>> pctd = property_ctd(s, 'hydrophobicity')
+    >>> pctd[:3]
+    (0.0, 0.5, 0.5)
+    >>> pctd[3:6]
+    (0.0, 0.0, 1.0)
+    >>> pctd[6:11]
+    (0.0, 0.0, 0.0, 0.0, 0.0)
+    >>> pctd[11:16]
+    (0.1, 0.1, 0.5, 0.7, 0.9)
+    >>> pctd[16:21]
+    (0.2, 0.2, 0.6, 0.8, 1.0)
+
+    >>> pctd = property_ctd('A', 'hydrophobicity')
+    >>> pctd[:3]
+    (0.0, 1.0, 0.0)
+    >>> pctd[3:6]
+    (0.0, 0.0, 0.0)
+    >>> pctd[6:11]
+    (0.0, 0.0, 0.0, 0.0, 0.0)
+    >>> pctd[11:16]
+    (1.0, 1.0, 1.0, 1.0, 1.0)
+    >>> pctd[16:21]
+    (0.0, 0.0, 0.0, 0.0, 0.0)
+
+    >>> property_ctd('', 'hydrophobicity')
+    Traceback (most recent call last):
+     ...
+    ValueError: Cannot calculate composition of empty sequence.
     '''
 
     # get mapping from amino acids to the three property clusters
@@ -947,11 +1007,18 @@ def property_ctd(seq, property):
 
     # transition features (transition counts normalized by total number of
     # transitions)
-    # TODO some general transition count function?
-    seq_length = float(len(state_seq))
-    t0 = (state_seq.count('AB') + state_seq.count('BA')) / (seq_length - 1)
-    t1 = (state_seq.count('AC') + state_seq.count('CA')) / (seq_length - 1)
-    t2 = (state_seq.count('BC') + state_seq.count('CB')) / (seq_length - 1)
+    # TODO add separate transition count function
+
+    # check if there is at least one transition, to avoid division by zero
+    if(len(state_seq) < 2):
+        t0 = 0.0
+        t1 = 0.0
+        t2 = 0.0
+    else:
+        seq_length = float(len(state_seq))
+        t0 = (state_seq.count('AB') + state_seq.count('BA')) / (seq_length - 1)
+        t1 = (state_seq.count('AC') + state_seq.count('CA')) / (seq_length - 1)
+        t2 = (state_seq.count('BC') + state_seq.count('CB')) / (seq_length - 1)
 
     # distribution
     fractions = [0.25, 0.5, 0.75, 1.0]
@@ -973,10 +1040,15 @@ def distribution(seq, letter, fractions=[0.25, 0.5, 0.75, 1.0]):
     fractions of the letter are reached.
 
     >>> s = 'AABBABABABAABBAAAAAB'
+
     >>> distribution(s, 'B')
     [0.15, 0.2, 0.4, 0.65, 1.0]
 
-    TODO test grensgevallen
+    >>> distribution(s, 'C')
+    [0.0, 0.0, 0.0, 0.0, 0.0]
+
+    >>> distribution('', 'A')
+    [0.0, 0.0, 0.0, 0.0, 0.0]
     '''
 
     # count how often letter occurs in seq
@@ -1054,9 +1126,17 @@ def quasi_sequence_order_descriptors(seq, aa_dists, rank, weight=0.1):
 
 def sequence_order_correlated_factors(seq, r, aa_corr):
     '''
+    NOTE: undesired result if len(seq) <= r. For now zero is returned in this
+    case. Need to check if this is the correct behaviour.
+
+    NOTE: Correlation value zero is used as default, in case of ambiguous amino
+    acids occur.
     '''
-    corr_values = [aa_corr[p] for p in ordered_seq_pairs(seq, r)]
-    return sum(corr_values) / (len(seq) - r)
+    if(len(seq) < r):
+        return 0.0
+    else:
+        corr_values = [aa_corr.get(p, 0.0) for p in ordered_seq_pairs(seq, r)]
+        return sum(corr_values) / (len(seq) - r)
 
 
 def pseaac_type1(seq, aa_scales, lambda_, weight=0.05):
@@ -1073,7 +1153,6 @@ def pseaac_type1(seq, aa_scales, lambda_, weight=0.05):
 
     if(lambda_ <= 0):
         raise ValueError('The max rank should be larger than 0.')
-
 
     # TODO move to correlation matrix function???
     if(all(type(a) == str for a in aa_scales)):
@@ -1249,10 +1328,10 @@ def convolution_filter(window, edge):
         ValueError: if the window is too small, smaller than 3.
         ValueError: if the edge parameter is out of range [0.0, 1.0].
 
-    >>> convolution_filter()
+    >>> convolution_filter(9, 0.0)
     array([ 0.    ,  0.0625,  0.125 ,  0.1875,  0.25  ,  0.1875,  0.125 ,
             0.0625,  0.    ])
-    >>> convolution_filter(window=3, edge=33.333333)
+    >>> convolution_filter(3, 33.333333)
     array([ 0.2,  0.6,  0.2])
     '''
 
@@ -1644,3 +1723,7 @@ def single_mutation_aa_substitution_stats():
     print 'TOTAL: %i' % (len(aa_substitutions()))
     #print impossible_subs
     print ''
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()

@@ -6,4 +6,4 @@
 .. moduleauthor:: Bastiaan van den Berg <b.a.vandenberg@gmail.com>
 """
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
