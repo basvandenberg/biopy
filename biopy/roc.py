@@ -48,13 +48,14 @@ class RocCollection(object):
         pyplot.close(fig)
 
     def save_avg_roc_plot(self, f, color='#3465a4', linestyle='-',
-                subcolor='#d3d7cf', sublinestyle='-', transparent=False):
+                          subcolor='#d3d7cf', sublinestyle='-',
+                          transparent=False):
         fig = self.get_avg_roc_plot(color, linestyle, subcolor, sublinestyle)
         fig.savefig(f, transparent=transparent, bbox_inches='tight')
         pyplot.close(fig)
 
     def get_avg_roc_plot(self, color='#3465a4', linestyle='-',
-                subcolor='#d3d7cf', sublinestyle='-', avg_only=False):
+                         subcolor='#d3d7cf', sublinestyle='-', avg_only=False):
 
         # TODO turn this into create empty ROC axes function
         # create figure axes
@@ -182,7 +183,7 @@ class ROC(object):
         for i in range(len(pred_sorted) - 1):
             if not(pred_sorted[i] == pred_sorted[i + 1]):
                 midpoint = pred_sorted[i] + 0.5 *\
-                        (pred_sorted[i + 1] - pred_sorted[i])
+                    (pred_sorted[i + 1] - pred_sorted[i])
                 middle.append(midpoint)
 
         thresholds = []
@@ -204,7 +205,7 @@ class ROC(object):
                         tp += 1
                     else:
                         raise ValueError('Labels can only be %i or %i.' %
-                                (self.class0, self.class1))
+                                         (self.class0, self.class1))
 
             # calculate false and true positive rate
             fpr = float(fp) / n
@@ -257,7 +258,7 @@ class ROC(object):
                 return (index)
 
     def save_roc_plot(self, f, label='', color='#3465a4', linestyle='-',
-            transparent=False):
+                      transparent=False):
         fig = self.get_roc_plot(f, label, color, linestyle)
         fig.savefig(f, transparent=transparent, bbox_inches='tight')
         pyplot.close(fig)
